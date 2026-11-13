@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>&#21488;&#20013;&#33290;&#22478;&#23450;&#40670;&#23566;&#35712;&#65372;LBS &#23526;&#22659;&#36208;&#35712;&#36938;&#25138;</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --primary: #2d8a68;
+      --primary-light: #e6f5ef;
+      --accent: #ff6b8b;
+      --accent-glow: rgba(255, 107, 139, 0.45);
+      --bg-card: rgba(255, 255, 255, 0.97);
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body, html { width: 100%; height: 100%; font-family: sans-serif; overflow: hidden; background: #dce7e2; color: var(--text-main); }
+    #map { width: 100%; height: 100%; z-index: 1; background: #dce7e2; }
+    .top-hud { position: fixed; top: 12px; left: 12px; right: 12px; z-index: 1000; background: var(--bg-card); border-radius: 18px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .hud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .game-title { font-size: 15px; font-weight: 800; color: var(--primary); }
+    .gps-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #fef3c7; color: #b45309; display: flex; align-items: center; gap: 4px; }
+    .gps-badge.active { background: #dcfce7; color: #15803d; }
+    .gps-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.4s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .stamp-row { display: flex; justify-content: space-between; gap: 6px; }
+    .stamp-slot { flex: 1; height: 30px; border-radius: 10px; background: #f3f4f6; border: 1.5px dashed #d1d5db; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #9ca3af; }
+    .stamp-slot.collected { background: linear-gradient(135deg, #34d399, #059669); border: 1.5px solid #059669; color: #ffffff; }
+    .bottom-panel { position: fixed; bottom: 20px; left: 12px; right: 12px; z-index: 1000; background: var(--bg-card); border-radius: 22px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
+    .station-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .station-tag { font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 2px 8px; border-radius: 6px; }
+    .distance-tag { font-size: 13px; font-weight: 800; color: var(--text-muted); }
+    .distance-tag.in-range { color: var(--accent); }
+    .station-name { font-size: 18px; font-weight: 800; margin-bottom: 2px; color: #111827; }
+    .station-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+    .action-btn { width: 100%; border: none; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .action-btn.locked { background: #e5e7eb; color: #4b5563; }
+    .action-btn.unlocked { background: linear-gradient(135deg, #ff6b8b, #ff477e); color: #ffffff; box-shadow: 0 6px 20px var(--accent-glow); animation: pulseBtn 1.5s infinite; }
+    @keyframes pulseBtn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    .panel-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f3f4f6; font-size: 12px; }
+    .pass-btn { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .nav-arrows { display: flex; gap: 8px; }
+    .mini-btn { background: #f3f4f6; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; color: #374151; cursor: pointer; }
+    .floating-tools { position: fixed; right: 12px; top: 102px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+    .tool-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.12); font-size: 19px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .bgm-pill { height: 42px; padding: 0 14px; border-radius: 999px; background: var(--bg-card); border: 1.5px solid #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.12); font-size: 13px; font-weight: 800; color: #374151; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .bgm-pill.playing { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(17,24,39,0.78); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop.show { display: flex; }
+    .video-card { width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px; overflow: hidden; }
+    .video-header { padding: 14px 18px; background: linear-gradient(135deg, #2d8a68, #1f6b4f); color: #ffffff; display: flex; justify-content: space-between; align-items: center; }
+    .video-header h3 { font-size: 15px; font-weight: 800; }
+    .close-modal { background: rgba(255,255,255,0.2); border: none; color: #ffffff; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+    .video-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000000; }
+    .video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .video-footer { padding: 14px 18px; text-align: center; }
+    .stamp-earned-banner { background: #ecfdf5; color: #065f46; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; }
+    .done-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--primary); color: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer; }
+    .passcode-box { width: 100%; max-width: 340px; background: #ffffff; border-radius: 20px; padding: 20px; text-align: center; }
+    .passcode-box h4 { font-size: 16px; margin-bottom: 6px; }
+    .passcode-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+    .passcode-input { width: 100%; padding: 12px; font-size: 20px; text-align: center; letter-spacing: 4px; border: 2px solid #d1d5db; border-radius: 12px; margin-bottom: 12px; font-weight: 800; }
+    .player-marker { width: 22px; height: 22px; background: #3b82f6; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 0 6px rgba(59,130,246,0.3); }
+    .poi-pin { width: 34px; height: 34px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); color: var(--primary); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .poi-pin.in-range { background: var(--accent); border-color: #ffffff; color: #ffffff; transform: scale(1.2); }
+    .poi-pin.done { background: #10b981; border-color: #ffffff; color: #ffffff; }
+    .victory-card { width: 100%; max-width: 360px; background: #fffbeb; border-radius: 24px; padding: 24px 20px; text-align: center; border: 2px solid #fcd34d; }
+  </style>
+</head>
+<body>
+  <audio id="bgmAudio" src="bgm.mp3" loop preload="auto"></audio>
+
+  <div class="top-hud">
+    <div class="hud-header">
+      <div class="game-title">&#127807; &#21488;&#20013;&#33290;&#22478;&#12539;&#23526;&#22659;&#21205;&#24907;&#23566;&#35712;</div>
+      <div id="gpsBadge" class="gps-badge"><span class="gps-dot"></span><span id="gpsText">&#23450;&#20301;&#25628;&#23563;&#20013;...</span></div>
+    </div>
+    <div class="stamp-row" id="stampRow"></div>
+  </div>
+  <div class="floating-tools">
+    <button id="bgmBtn" class="bgm-pill" onclick="toggleBGM()">&#127925; &#20027;&#38988;&#26354;&#65306;&#38364;</button>
+    <button class="tool-btn" onclick="centerOnPlayer()" title="我的位置">&#128205;</button>
+    <button class="tool-btn" onclick="fitAllStations()" title="全部路線">&#128506;&#65039;</button>
+    <button class="tool-btn" onclick="demoUnlockCurrent()" title="遠端一鍵體驗">&#127918;</button>
+  </div>
+  <div id="map"></div>
+  <div class="bottom-panel">
+    <div class="station-meta">
+      <span class="station-tag" id="stationTag">&#23450;&#40670; #1</span>
+      <span class="distance-tag" id="distanceTag">&#35336;&#31639;&#36317;&#38626;&#20013;...</span>
+    </div>
+    <div class="station-name" id="stationName">&#36617;&#20837;&#20013;...</div>
+    <div class="station-sub" id="stationSub">&#35531;&#20801;&#35377;&#28687;&#35261;&#22120;&#23384;&#21462;&#20301;&#32622;&#20197;&#24863;&#25033;&#20809;&#22280;</div>
+    <button id="playBtn" class="action-btn locked" onclick="handlePlayClick()">&#128274; &#36208;&#36914; 50 &#20844;&#23610;&#20809;&#22280;&#33258;&#21205;&#25773;&#25918;</button>
+    <div class="panel-footer">
+      <button class="pass-btn" onclick="openPasscodeModal()">&#128273; &#36664;&#20837;&#29694;&#22580;&#23494;&#30908;</button>
+      <div class="nav-arrows">
+        <button class="mini-btn" onclick="switchStation(-1)">&#9664; &#19978;&#19968;&#31449;</button>
+        <button class="mini-btn" onclick="switchStation(1)">&#19979;&#19968;&#31449; &#9654;</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="videoModal">
+    <div class="video-card">
+      <div class="video-header">
+        <h3 id="modalTitle">&#23450;&#40670;&#21205;&#24907;&#23566;&#35712;</h3>
+        <button class="close-modal" onclick="closeVideoModal()">&#10005;</button>
+      </div>
+      <div class="video-wrapper"><iframe id="ytPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+      <div class="video-footer">
+        <div class="stamp-earned-banner" id="stampBanner">&#127881; &#24050;&#33258;&#21205;&#28858;&#24744;&#40670;&#20142;&#26412;&#23450;&#40670;&#38598;&#31456;&#65281;</div>
+        <button class="done-btn" onclick="closeVideoModal()">&#9989; &#30475;&#23436;&#20102;&#65281;&#38364;&#38281;&#35222;&#31383;&#21069;&#24448;&#19979;&#19968;&#31449;</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="passcodeModal">
+    <div class="passcode-box">
+      <h4>&#128273; &#36664;&#20837;&#29694;&#22580;&#36890;&#38364;&#23494;&#30908;</h4>
+      <p id="passcodeHint">&#35531;&#36664;&#20837;&#23450;&#40670; 3 &#20301;&#25976;&#23494;&#30908;&#65288;101&#65374;106&#65289;</p>
+      <input type="tel" maxlength="4" id="passcodeInput" class="passcode-input" placeholder="101" />
+      <div style="display:flex; gap:8px;">
+        <button class="mini-btn" style="flex:1; padding:12px;" onclick="closePasscodeModal()">&#21462;&#28040;</button>
+        <button class="done-btn" style="flex:2;" onclick="verifyPasscode()">&#35299;&#37782;&#25773;&#25918;</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="victoryModal">
+    <div class="victory-card">
+      <div style="font-size:48px; margin-bottom:8px;">&#127942;</div>
+      <h3 style="font-size:20px; font-weight:800; color:#92400e; margin-bottom:8px;">&#21488;&#20013;&#33290;&#22478;&#20840;&#21046;&#38712;&#65281;</h3>
+      <p style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:16px;">&#24685;&#21916;&#20320;&#36208;&#35370;&#23436; 6 &#24231;&#27511;&#21490;&#22320;&#27161;&#20006;&#23436;&#25104;&#25152;&#26377; 10 &#31186;&#21205;&#24907;&#23566;&#35712;&#65281;</p>
+      <button class="done-btn" style="background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">&#22826;&#26834;&#20102;&#65281;</button>
+    </div>
+  </div>
+  <script>
+    const TRIGGER_RADIUS_METERS = 50;
+    const stations = [
+      { id: 1, code: "101", name: "1889 \u81fa\u4e2d\u516c\u5712\u30fb\u671b\u6708\u4ead", subtitle: "Wangyue Pavilion", lat: 24.14496, lng: 120.68443, youtubeId: "yBPWEuuPhM0" },
+      { id: 2, code: "102", name: "\u7da0\u5ddd\u30fb\u6afb\u6a4b\u6c34\u5cb8\u91cd\u751f", subtitle: "Luchuan Sakura Bridge", lat: 24.13815, lng: 120.68412, youtubeId: "GNlAXr5WbTw" },
+      { id: 3, code: "103", name: "1927 \u5bae\u539f\u773c\u79d1", subtitle: "Miyahara", lat: 24.13782, lng: 120.68345, youtubeId: "C59rHqDQm-g" },
+      { id: 4, code: "104", name: "1917 \u820a\u81fa\u4e2d\u706b\u8eca\u7ad9", subtitle: "Old Taichung Station", lat: 24.13688, lng: 120.68502, youtubeId: "M5S5jlHNpX0" },
+      { id: 5, code: "105", name: "\u4e09\u767e\u5e74\u4fe1\u4ef0\u30fb\u81fa\u4e2d\u842c\u6625\u5bae", subtitle: "Wanchun Temple", lat: 24.13985, lng: 120.68118, youtubeId: "JJBgeqaEH48" },
+      { id: 6, code: "106", name: "1913 \u570b\u5b9a\u53e4\u8e5f\u81fa\u4e2d\u5dde\u5ef3", subtitle: "Taichung Prefectural Hall", lat: 24.13765, lng: 120.67755, youtubeId: "Wy4qRThRlwY" }
+    ];
+    let collectedIds = JSON.parse(localStorage.getItem("taichung_guide_stamps") || "[]");
+    let autoTriggeredIds = [];
+    let selectedIndex = 0, userLat = null, userLng = null, firstFixDone = false;
+
+    const bgmAudio = document.getElementById("bgmAudio");
+    const bgmBtn = document.getElementById("bgmBtn");
+    let userWantsBGM = false;
+
+    function toggleBGM() {
+      if (!userWantsBGM) {
+        bgmAudio.volume = 0.45;
+        bgmAudio.play().then(() => {
+          userWantsBGM = true;
+          bgmBtn.classList.add("playing");
+          bgmBtn.textContent = "\ud83c\udfb5 \u4e3b\u984c\u66f2\uff1a\u64ad\u653e\u4e2d";
+        }).catch(() => {
+          alert("\u8acb\u518d\u9ede\u4e00\u4e0b\u64ad\u653e\u97f3\u6a02\uff0c\u6216\u78ba\u8a8d\u7db2\u8def\u9023\u7dda\u6b63\u5e38\u5594\uff01");
+        });
+      } else {
+        userWantsBGM = false;
+        bgmAudio.pause();
+        bgmBtn.classList.remove("playing");
+        bgmBtn.textContent = "\ud83c\udfb5 \u4e3b\u984c\u66f2\uff1a\u95dc";
+      }
+    }
+
+    let map = null, playerMarker = null, playerAccuracyCircle = null;
+    const stationCircles = [];
+    try {
+      if (typeof L !== "undefined") {
+        map = L.map("map", { zoomControl: false }).setView([24.1395, 120.6825], 16);
+        L.tileLayer("https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}", { attribution: "&copy; \u5167\u653f\u90e8\u570b\u571f\u6e2c\u7e6a\u4e2d\u5fc3", maxZoom: 19 }).addTo(map);
+        L.polyline(stations.map(s => [s.lat, s.lng]), { color: "#2d8a68", weight: 4, opacity: 0.55, dashArray: "8, 10" }).addTo(map);
+        stations.forEach((st, idx) => {
+          const circle = L.circle([st.lat, st.lng], { radius: TRIGGER_RADIUS_METERS, color: "#2d8a68", weight: 2, fillColor: "#34d399", fillOpacity: 0.18 }).addTo(map);
+          stationCircles.push(circle);
+          const icon = L.divIcon({ className: "", html: `<div class="poi-pin" id="pin-${st.id}">${st.id}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+          const marker = L.marker([st.lat, st.lng], { icon }).addTo(map);
+          marker.on("click", () => { selectedIndex = idx; updateUI(); if (map) map.panTo([st.lat, st.lng]); });
+        });
+      }
+    } catch (e) { console.log("Map fallback", e); }
+
+    function startGPSTracking() {
+      if (!("geolocation" in navigator)) { document.getElementById("gpsText").textContent = "\u4e0d\u652f\u63f4 GPS"; return; }
+      navigator.geolocation.watchPosition((pos) => {
+        userLat = pos.coords.latitude; userLng = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+        document.getElementById("gpsBadge").classList.add("active");
+        document.getElementById("gpsText").textContent = `GPS \u5df2\u9023\u7dda (\u00b1${acc}m)`;
+        if (map && typeof L !== "undefined") {
+          if (!playerMarker) {
+            const pIcon = L.divIcon({ className: "", html: `<div class="player-marker"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
+            playerMarker = L.marker([userLat, userLng], { icon: pIcon, zIndexOffset: 999 }).addTo(map);
+            playerAccuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "#3b82f6", weight: 1, fillColor: "#3b82f6", fillOpacity: 0.1 }).addTo(map);
+          } else {
+            playerMarker.setLatLng([userLat, userLng]);
+            playerAccuracyCircle.setLatLng([userLat, userLng]);
+            playerAccuracyCircle.setRadius(acc);
+          }
+        }
+        autoTriggerInRange(); updateUI();
+        if (!firstFixDone && map) {
+          firstFixDone = true;
+          if (getDistanceMeters(userLat, userLng, 24.1395, 120.6825) < 3000) map.setView([userLat, userLng], 17);
+        }
+      }, () => { document.getElementById("gpsText").textContent = "\u8acb\u958b\u555f\u5b9a\u4f4d\u6b0a\u9650"; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+    }
+    function getDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000, dLat = ((lat2 - lat1) * Math.PI) / 180, dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+    function autoTriggerInRange() {
+      if (userLat === null) return;
+      stations.forEach((st, idx) => {
+        const d = getDistanceMeters(userLat, userLng, st.lat, st.lng);
+        if (d <= TRIGGER_RADIUS_METERS && !collectedIds.includes(st.id) && !autoTriggeredIds.includes(st.id)) {
+          autoTriggeredIds.push(st.id);
+          selectedIndex = idx;
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          openVideoModal(st);
+        }
+      });
+    }
+    function updateUI() {
+      document.getElementById("stampRow").innerHTML = stations.map(st => {
+        const done = collectedIds.includes(st.id);
+        return `<div class="stamp-slot ${done ? "collected" : ""}">${done ? "\u2713 #" + st.id : "#" + st.id}</div>`;
+      }).join("");
+      stations.forEach((st, idx) => {
+        const done = collectedIds.includes(st.id);
+        const inRange = (userLat !== null ? getDistanceMeters(userLat, userLng, st.lat, st.lng) : Infinity) <= TRIGGER_RADIUS_METERS;
+        const pinEl = document.getElementById(`pin-${st.id}`);
+        if (pinEl) { pinEl.className = "poi-pin" + (done ? " done" : inRange ? " in-range" : ""); pinEl.textContent = done ? "\u2713" : st.id; }
+        if (stationCircles[idx]) stationCircles[idx].setStyle(done ? { color: "#10b981", fillColor: "#10b981", fillOpacity: 0.2 } : inRange ? { color: "#ff477e", fillColor: "#ff6b8b", fillOpacity: 0.35 } : { color: "#2d8a68", fillColor: "#34d399", fillOpacity: 0.18 });
+      });
+      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
+      document.getElementById("stationTag").textContent = `\u5b9a\u9ede #${current.id} / ${stations.length}` + (isDone ? "\uff08\u5df2\u96c6\u7ae0\uff09" : "");
+      document.getElementById("stationName").textContent = current.name;
+      document.getElementById("stationSub").textContent = current.subtitle;
+      const distTag = document.getElementById("distanceTag"), playBtn = document.getElementById("playBtn");
+      if (userLat === null) {
+        distTag.textContent = "\u5b9a\u4f4d\u6821\u6e96\u4e2d"; distTag.classList.remove("in-range");
+        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
+        playBtn.textContent = isDone ? "\u25b6\ufe0f \u91cd\u6eab 10 \u79d2\u52d5\u614b\u5c0e\u8b80" : "\ud83d\udd12 \u8d70\u9032 50 \u516c\u5c3a\u5149\u5708\u81ea\u52d5\u64ad\u653e";
+        return;
+      }
+      const rawDist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
+      const dist = Math.round(rawDist / 5) * 5;
+      const inRange = rawDist <= TRIGGER_RADIUS_METERS;
+      if (inRange) {
+        distTag.textContent = `\u2728 \u5df2\u9032\u5165\u5149\u5708\u7bc4\u570d`; distTag.classList.add("in-range");
+        playBtn.className = "action-btn unlocked"; playBtn.textContent = "\ud83c\udfac \u6309\u4e0b\u64ad\u653e 10 \u79d2\u52d5\u614b\u5c0e\u8b80";
+      } else {
+        distTag.textContent = `\u8ddd\u96e2\u76ee\u6a19\u7d04 ${dist} \u516c\u5c3a`; distTag.classList.remove("in-range");
+        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
+        playBtn.textContent = isDone ? "\u25b6\ufe0f \u91cd\u6eab 10 \u79d2\u52d5\u614b\u5c0e\u8b80" : `\ud83d\udd12 \u9084\u5dee\u7d04 ${Math.max(5, dist - TRIGGER_RADIUS_METERS)} \u516c\u5c3a\u9032\u5165\u5149\u5708`;
+      }
+    }
+    function switchStation(delta) { selectedIndex = (selectedIndex + delta + stations.length) % stations.length; if (map) map.panTo([stations[selectedIndex].lat, stations[selectedIndex].lng]); updateUI(); }
+    function centerOnPlayer() { if (userLat !== null && map) map.setView([userLat, userLng], 17); else alert("\u5c1a\u672a\u53d6\u5f97\u60a8\u7684 GPS \u4f4d\u7f6e\uff0c\u8acb\u78ba\u8a8d\u624b\u6a5f\u5df2\u958b\u555f\u5b9a\u4f4d\u6b0a\u9650\u3002"); }
+    function fitAllStations() { if (map && typeof L !== "undefined") map.fitBounds(L.latLngBounds(stations.map(s => [s.lat, s.lng])), { padding: [70, 70] }); }
+    function demoUnlockCurrent() { openVideoModal(stations[selectedIndex]); }
+    function handlePlayClick() {
+      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
+      if (userLat === null) { openPasscodeModal(); return; }
+      const dist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
+      if (dist <= TRIGGER_RADIUS_METERS || isDone) openVideoModal(current);
+      else openPasscodeModal();
+    }
+    function openVideoModal(station) {
+      if (userWantsBGM && !bgmAudio.paused) bgmAudio.pause();
+      const isNewStamp = !collectedIds.includes(station.id);
+      if (isNewStamp) { collectedIds.push(station.id); localStorage.setItem("taichung_guide_stamps", JSON.stringify(collectedIds)); updateUI(); }
+      document.getElementById("modalTitle").textContent = `#${station.id} ${station.name}`;
+      document.getElementById("stampBanner").textContent = isNewStamp ? `\ud83c\udf89 \u606d\u559c\uff01\u5df2\u84cb\u4e0a\u300c#${station.id}\u300d\u7d00\u5ff5\u7ae0\uff08${collectedIds.length}/${stations.length}\uff09` : `\u2705 \u60a8\u5df2\u6536\u96c6\u6b64\u5b9a\u9ede\u7d00\u5ff5\u7ae0\uff08${collectedIds.length}/${stations.length}\uff09`;
+      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${station.youtubeId}?autoplay=1&rel=0&playsinline=1`;
+      document.getElementById("videoModal").classList.add("show");
+    }
+    function closeVideoModal() {
+      document.getElementById("ytPlayer").src = "";
+      document.getElementById("videoModal").classList.remove("show");
+      if (userWantsBGM) bgmAudio.play().catch(() => {});
+      if (collectedIds.length === stations.length) setTimeout(() => document.getElementById("victoryModal").classList.add("show"), 350);
+    }
+    function openPasscodeModal() {
+      const current = stations[selectedIndex];
+      document.getElementById("passcodeHint").textContent = `\u8acb\u8f38\u5165\u5b9a\u9ede #${current.id}\u300c${current.name}\u300d\u73fe\u5834 3 \u4f4d\u6578\u5bc6\u78bc\uff08\u6e2c\u8a66\u78bc ${current.code}\uff09`;
+      document.getElementById("passcodeInput").value = "";
+      document.getElementById("passcodeModal").classList.add("show");
+    }
+    function closePasscodeModal() { document.getElementById("passcodeModal").classList.remove("show"); }
+    function verifyPasscode() {
+      const current = stations[selectedIndex];
+      if (document.getElementById("passcodeInput").value.trim() === current.code) { closePasscodeModal(); openVideoModal(current); }
+      else alert("\u5bc6\u78bc\u4e0d\u6b63\u78ba\u5594\uff01");
+    }
+    updateUI(); fitAllStations(); startGPSTracking();
+  </script>
+</body>
+</html>
