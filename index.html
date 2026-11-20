@@ -85,6 +85,7 @@
     <button class="tool-btn" onclick="centerOnPlayer()" title="我的位置">&#128205;</button>
     <button class="tool-btn" onclick="fitAllStations()" title="全部路線">&#128506;&#65039;</button>
     <button class="tool-btn" onclick="demoUnlockCurrent()" title="遠端一鍵體驗">&#127918;</button>
+    <button class="tool-btn" onclick="resetGame(true)" title="重新開始">&#128260;</button>
   </div>
   <div id="map"></div>
   <div class="bottom-panel">
@@ -132,7 +133,10 @@
       <div style="font-size:48px; margin-bottom:8px;">&#127942;</div>
       <h3 style="font-size:20px; font-weight:800; color:#92400e; margin-bottom:8px;">&#21488;&#20013;&#33290;&#22478;&#20840;&#21046;&#38712;&#65281;</h3>
       <p style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:16px;">&#24685;&#21916;&#20320;&#36208;&#35370;&#23436; 6 &#24231;&#27511;&#21490;&#22320;&#27161;&#20006;&#23436;&#25104;&#25152;&#26377; 10 &#31186;&#21205;&#24907;&#23566;&#35712;&#65281;</p>
-      <button class="done-btn" style="background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">&#22826;&#26834;&#20102;&#65281;</button>
+      <div style="display:flex; gap:8px;">
+        <button class="mini-btn" style="flex:1; padding:14px; font-size:14px;" onclick="resetGame(false)">&#128260; &#37325;&#26032;&#38283;&#22987;</button>
+        <button class="done-btn" style="flex:1; background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">&#22826;&#26834;&#20102;&#65281;</button>
+      </div>
     </div>
   </div>
   <script>
@@ -169,6 +173,17 @@
         bgmBtn.classList.remove("playing");
         bgmBtn.textContent = "\ud83c\udfb5 \u4e3b\u984c\u66f2\uff1a\u95dc";
       }
+    }
+
+    function resetGame(needConfirm) {
+      if (needConfirm && !confirm("\u78ba\u5b9a\u8981\u6e05\u9664\u6240\u6709\u96c6\u7ae0\u7d00\u9304\u4e26\u91cd\u65b0\u958b\u59cb\u55ce\uff1f")) return;
+      collectedIds = [];
+      autoTriggeredIds = [];
+      selectedIndex = 0;
+      localStorage.removeItem("taichung_guide_stamps");
+      document.getElementById("victoryModal").classList.remove("show");
+      updateUI();
+      fitAllStations();
     }
 
     let map = null, playerMarker = null, playerAccuracyCircle = null;
@@ -245,65 +260,4 @@
       const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
       document.getElementById("stationTag").textContent = `\u5b9a\u9ede #${current.id} / ${stations.length}` + (isDone ? "\uff08\u5df2\u96c6\u7ae0\uff09" : "");
       document.getElementById("stationName").textContent = current.name;
-      document.getElementById("stationSub").textContent = current.subtitle;
-      const distTag = document.getElementById("distanceTag"), playBtn = document.getElementById("playBtn");
-      if (userLat === null) {
-        distTag.textContent = "\u5b9a\u4f4d\u6821\u6e96\u4e2d"; distTag.classList.remove("in-range");
-        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
-        playBtn.textContent = isDone ? "\u25b6\ufe0f \u91cd\u6eab 10 \u79d2\u52d5\u614b\u5c0e\u8b80" : "\ud83d\udd12 \u8d70\u9032 50 \u516c\u5c3a\u5149\u5708\u81ea\u52d5\u64ad\u653e";
-        return;
-      }
-      const rawDist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
-      const dist = Math.round(rawDist / 5) * 5;
-      const inRange = rawDist <= TRIGGER_RADIUS_METERS;
-      if (inRange) {
-        distTag.textContent = `\u2728 \u5df2\u9032\u5165\u5149\u5708\u7bc4\u570d`; distTag.classList.add("in-range");
-        playBtn.className = "action-btn unlocked"; playBtn.textContent = "\ud83c\udfac \u6309\u4e0b\u64ad\u653e 10 \u79d2\u52d5\u614b\u5c0e\u8b80";
-      } else {
-        distTag.textContent = `\u8ddd\u96e2\u76ee\u6a19\u7d04 ${dist} \u516c\u5c3a`; distTag.classList.remove("in-range");
-        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
-        playBtn.textContent = isDone ? "\u25b6\ufe0f \u91cd\u6eab 10 \u79d2\u52d5\u614b\u5c0e\u8b80" : `\ud83d\udd12 \u9084\u5dee\u7d04 ${Math.max(5, dist - TRIGGER_RADIUS_METERS)} \u516c\u5c3a\u9032\u5165\u5149\u5708`;
-      }
-    }
-    function switchStation(delta) { selectedIndex = (selectedIndex + delta + stations.length) % stations.length; if (map) map.panTo([stations[selectedIndex].lat, stations[selectedIndex].lng]); updateUI(); }
-    function centerOnPlayer() { if (userLat !== null && map) map.setView([userLat, userLng], 17); else alert("\u5c1a\u672a\u53d6\u5f97\u60a8\u7684 GPS \u4f4d\u7f6e\uff0c\u8acb\u78ba\u8a8d\u624b\u6a5f\u5df2\u958b\u555f\u5b9a\u4f4d\u6b0a\u9650\u3002"); }
-    function fitAllStations() { if (map && typeof L !== "undefined") map.fitBounds(L.latLngBounds(stations.map(s => [s.lat, s.lng])), { padding: [70, 70] }); }
-    function demoUnlockCurrent() { openVideoModal(stations[selectedIndex]); }
-    function handlePlayClick() {
-      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
-      if (userLat === null) { openPasscodeModal(); return; }
-      const dist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
-      if (dist <= TRIGGER_RADIUS_METERS || isDone) openVideoModal(current);
-      else openPasscodeModal();
-    }
-    function openVideoModal(station) {
-      if (userWantsBGM && !bgmAudio.paused) bgmAudio.pause();
-      const isNewStamp = !collectedIds.includes(station.id);
-      if (isNewStamp) { collectedIds.push(station.id); localStorage.setItem("taichung_guide_stamps", JSON.stringify(collectedIds)); updateUI(); }
-      document.getElementById("modalTitle").textContent = `#${station.id} ${station.name}`;
-      document.getElementById("stampBanner").textContent = isNewStamp ? `\ud83c\udf89 \u606d\u559c\uff01\u5df2\u84cb\u4e0a\u300c#${station.id}\u300d\u7d00\u5ff5\u7ae0\uff08${collectedIds.length}/${stations.length}\uff09` : `\u2705 \u60a8\u5df2\u6536\u96c6\u6b64\u5b9a\u9ede\u7d00\u5ff5\u7ae0\uff08${collectedIds.length}/${stations.length}\uff09`;
-      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${station.youtubeId}?autoplay=1&rel=0&playsinline=1`;
-      document.getElementById("videoModal").classList.add("show");
-    }
-    function closeVideoModal() {
-      document.getElementById("ytPlayer").src = "";
-      document.getElementById("videoModal").classList.remove("show");
-      if (userWantsBGM) bgmAudio.play().catch(() => {});
-      if (collectedIds.length === stations.length) setTimeout(() => document.getElementById("victoryModal").classList.add("show"), 350);
-    }
-    function openPasscodeModal() {
-      const current = stations[selectedIndex];
-      document.getElementById("passcodeHint").textContent = `\u8acb\u8f38\u5165\u5b9a\u9ede #${current.id}\u300c${current.name}\u300d\u73fe\u5834 3 \u4f4d\u6578\u5bc6\u78bc\uff08\u6e2c\u8a66\u78bc ${current.code}\uff09`;
-      document.getElementById("passcodeInput").value = "";
-      document.getElementById("passcodeModal").classList.add("show");
-    }
-    function closePasscodeModal() { document.getElementById("passcodeModal").classList.remove("show"); }
-    function verifyPasscode() {
-      const current = stations[selectedIndex];
-      if (document.getElementById("passcodeInput").value.trim() === current.code) { closePasscodeModal(); openVideoModal(current); }
-      else alert("\u5bc6\u78bc\u4e0d\u6b63\u78ba\u5594\uff01");
-    }
-    updateUI(); fitAllStations(); startGPSTracking();
-  </script>
-</body>
-</html>
+     
