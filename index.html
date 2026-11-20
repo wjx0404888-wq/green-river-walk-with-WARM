@@ -1,257 +1,145 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>台中舊城定點導讀｜LBS 實境走讀遊戲</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <style>
-    :root { --primary: #2d8a68; --primary-light: #e6f5ef; --accent: #ff6b8b; --accent-glow: rgba(255,107,139,0.45); --bg-card: rgba(255,255,255,0.97); --text-main: #1f2937; --text-muted: #6b7280; }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; font-family: sans-serif; overflow: hidden; background: #dce7e2; color: var(--text-main); }
-    #map { width: 100%; height: 100%; z-index: 1; background: #dce7e2; }
-    .top-hud { position: fixed; top: 12px; left: 12px; right: 12px; z-index: 1000; background: var(--bg-card); border-radius: 18px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-    .hud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .game-title { font-size: 15px; font-weight: 800; color: var(--primary); }
-    .gps-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: #fef3c7; color: #b45309; display: flex; align-items: center; gap: 4px; }
-    .gps-badge.active { background: #dcfce7; color: #15803d; }
-    .gps-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.4s infinite; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-    .stamp-row { display: flex; justify-content: space-between; gap: 6px; }
-    .stamp-slot { flex: 1; height: 30px; border-radius: 10px; background: #f3f4f6; border: 1.5px dashed #d1d5db; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #9ca3af; }
-    .stamp-slot.collected { background: linear-gradient(135deg, #34d399, #059669); border: 1.5px solid #059669; color: #ffffff; }
-    .bottom-panel { position: fixed; bottom: 20px; left: 12px; right: 12px; z-index: 1000; background: var(--bg-card); border-radius: 22px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
-    .station-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .station-tag { font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-light); padding: 2px 8px; border-radius: 6px; }
-    .distance-tag { font-size: 13px; font-weight: 800; color: var(--text-muted); }
-    .distance-tag.in-range { color: var(--accent); }
-    .station-name { font-size: 18px; font-weight: 800; margin-bottom: 2px; color: #111827; }
-    .station-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
-    .action-btn { width: 100%; border: none; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .action-btn.locked { background: #e5e7eb; color: #4b5563; }
-    .action-btn.unlocked { background: linear-gradient(135deg, #ff6b8b, #ff477e); color: #ffffff; box-shadow: 0 6px 20px var(--accent-glow); animation: pulseBtn 1.5s infinite; }
-    @keyframes pulseBtn { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
-    .panel-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f3f4f6; font-size: 12px; }
-    .pass-btn { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
-    .nav-arrows { display: flex; gap: 8px; }
-    .mini-btn { background: #f3f4f6; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; color: #374151; cursor: pointer; }
-    .floating-tools { position: fixed; right: 12px; top: 102px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-    .tool-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0,0,0,0.12); font-size: 19px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .bgm-pill { height: 42px; padding: 0 14px; border-radius: 999px; background: var(--bg-card); border: 1.5px solid #d1d5db; box-shadow: 0 4px 12px rgba(0,0,0,0.12); font-size: 13px; font-weight: 800; color: #374151; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    .bgm-pill.playing { background: #ecfdf5; border-color: #10b981; color: #065f46; }
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(17,24,39,0.78); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 16px; }
-    .modal-backdrop.show { display: flex; }
-    .video-card { width: 100%; max-width: 420px; background: #ffffff; border-radius: 24px; overflow: hidden; }
-    .video-header { padding: 14px 18px; background: linear-gradient(135deg, #2d8a68, #1f6b4f); color: #ffffff; display: flex; justify-content: space-between; align-items: center; }
-    .video-header h3 { font-size: 15px; font-weight: 800; }
-    .close-modal { background: rgba(255,255,255,0.2); border: none; color: #ffffff; width: 28px; height: 28px; border-radius: 50%; font-size: 16px; cursor: pointer; }
-    .video-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000000; }
-    .video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-    .video-footer { padding: 14px 18px; text-align: center; }
-    .stamp-earned-banner { background: #ecfdf5; color: #065f46; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; margin-bottom: 10px; }
-    .done-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--primary); color: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer; }
-    .passcode-box { width: 100%; max-width: 340px; background: #ffffff; border-radius: 20px; padding: 20px; text-align: center; }
-    .passcode-box h4 { font-size: 16px; margin-bottom: 6px; }
-    .passcode-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
-    .passcode-input { width: 100%; padding: 12px; font-size: 20px; text-align: center; letter-spacing: 4px; border: 2px solid #d1d5db; border-radius: 12px; margin-bottom: 12px; font-weight: 800; }
-    .player-marker { width: 22px; height: 22px; background: #3b82f6; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 0 6px rgba(59,130,246,0.3); }
-    .poi-pin { width: 34px; height: 34px; border-radius: 50%; background: #ffffff; border: 3px solid var(--primary); color: var(--primary); font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-    .poi-pin.in-range { background: var(--accent); border-color: #ffffff; color: #ffffff; transform: scale(1.2); }
-    .poi-pin.done { background: #10b981; border-color: #ffffff; color: #ffffff; }
-    .victory-card { width: 100%; max-width: 360px; background: #fffbeb; border-radius: 24px; padding: 24px 20px; text-align: center; border: 2px solid #fcd34d; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>台中舊城定點導讀｜LBS 實境走讀遊戲</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--primary:#2d8a68;--primary-light:#e6f5ef;--accent:#ff6b8b;--accent-glow:rgba(255,107,139,0.45);--bg-card:rgba(255,255,255,0.97);--text-main:#1f2937;--text-muted:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body,html{width:100%;height:100%;font-family:sans-serif;overflow:hidden;background:#dce7e2;color:var(--text-main)}
+#map{width:100%;height:100%;z-index:1;background:#dce7e2}
+.top-hud{position:fixed;top:12px;left:12px;right:12px;z-index:1000;background:var(--bg-card);border-radius:18px;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.hud-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.game-title{font-size:15px;font-weight:800;color:var(--primary)}
+.gps-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:#fef3c7;color:#b45309;display:flex;align-items:center;gap:4px}
+.gps-badge.active{background:#dcfce7;color:#15803d}
+.gps-dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.stamp-row{display:flex;justify-content:space-between;gap:6px}
+.stamp-slot{flex:1;height:30px;border-radius:10px;background:#f3f4f6;border:1.5px dashed #d1d5db;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#9ca3af}
+.stamp-slot.collected{background:linear-gradient(135deg,#34d399,#059669);border:1.5px solid #059669;color:#fff}
+.bottom-panel{position:fixed;bottom:20px;left:12px;right:12px;z-index:1000;background:var(--bg-card);border-radius:22px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,0.18)}
+.station-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.station-tag{font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:6px}
+.distance-tag{font-size:13px;font-weight:800;color:var(--text-muted)}
+.distance-tag.in-range{color:var(--accent)}
+.station-name{font-size:18px;font-weight:800;margin-bottom:2px;color:#111827}
+.station-sub{font-size:12px;color:var(--text-muted);margin-bottom:12px}
+.action-btn{width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.action-btn.locked{background:#e5e7eb;color:#4b5563}
+.action-btn.unlocked{background:linear-gradient(135deg,#ff6b8b,#ff477e);color:#fff;box-shadow:0 6px 20px var(--accent-glow);animation:pulseBtn 1.5s infinite}
+@keyframes pulseBtn{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+.panel-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #f3f4f6;font-size:12px}
+.pass-btn{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.nav-arrows{display:flex;gap:8px}
+.mini-btn{background:#f3f4f6;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:#374151;cursor:pointer}
+.floating-tools{position:fixed;right:12px;top:102px;z-index:1000;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.tool-btn{width:44px;height:44px;border-radius:50%;background:var(--bg-card);border:1px solid #e5e7eb;box-shadow:0 4px 12px rgba(0,0,0,0.12);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.bgm-pill{height:42px;padding:0 14px;border-radius:999px;background:var(--bg-card);border:1.5px solid #d1d5db;box-shadow:0 4px 12px rgba(0,0,0,0.12);font-size:13px;font-weight:800;color:#374151;display:flex;align-items:center;gap:6px;cursor:pointer}
+.bgm-pill.playing{background:#ecfdf5;border-color:#10b981;color:#065f46}
+.modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,0.78);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-backdrop.show{display:flex}
+.video-card{width:100%;max-width:420px;background:#fff;border-radius:24px;overflow:hidden}
+.video-header{padding:14px 18px;background:linear-gradient(135deg,#2d8a68,#1f6b4f);color:#fff;display:flex;justify-content:space-between;align-items:center}
+.video-header h3{font-size:15px;font-weight:800}
+.close-modal{background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer}
+.video-wrapper{position:relative;width:100%;padding-top:56.25%;background:#000}
+.video-wrapper iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-footer{padding:14px 18px;text-align:center}
+.stamp-earned-banner{background:#ecfdf5;color:#065f46;font-size:13px;font-weight:700;padding:8px 12px;border-radius:10px;margin-bottom:10px}
+.done-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:15px;font-weight:800;cursor:pointer}
+.passcode-box{width:100%;max-width:340px;background:#fff;border-radius:20px;padding:20px;text-align:center}
+.passcode-box h4{font-size:16px;margin-bottom:6px}
+.passcode-box p{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+.passcode-input{width:100%;padding:12px;font-size:20px;text-align:center;letter-spacing:4px;border:2px solid #d1d5db;border-radius:12px;margin-bottom:12px;font-weight:800}
+.player-marker{width:22px;height:22px;background:#3b82f6;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(59,130,246,0.3)}
+.poi-pin{width:34px;height:34px;border-radius:50%;background:#fff;border:3px solid var(--primary);color:var(--primary);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
+.poi-pin.in-range{background:var(--accent);border-color:#fff;color:#fff;transform:scale(1.2)}
+.poi-pin.done{background:#10b981;border-color:#fff;color:#fff}
+.victory-card{width:100%;max-width:360px;background:#fffbeb;border-radius:24px;padding:24px 20px;text-align:center;border:2px solid #fcd34d}
+</style>
 </head>
 <body>
-  <audio id="bgmAudio" src="bgm.mp3" loop preload="auto"></audio>
-  <div class="top-hud">
-    <div class="hud-header">
-      <div class="game-title">🌿 台中舊城・實境動態導讀</div>
-      <div id="gpsBadge" class="gps-badge"><span class="gps-dot"></span><span id="gpsText">定位搜尋中...</span></div>
-    </div>
-    <div class="stamp-row" id="stampRow"></div>
+<audio id="bgmAudio" src="bgm.mp3" loop preload="auto"></audio>
+<div class="top-hud">
+  <div class="hud-header"><div class="game-title">🌿 台中舊城・實境動態導讀</div><div id="gpsBadge" class="gps-badge"><span class="gps-dot"></span><span id="gpsText">定位搜尋中...</span></div></div>
+  <div class="stamp-row" id="stampRow"></div>
+</div>
+<div class="floating-tools">
+  <button id="bgmBtn" class="bgm-pill" onclick="toggleBGM()">🎵 主題曲：關</button>
+  <button class="tool-btn" onclick="centerOnPlayer()">📍</button>
+  <button class="tool-btn" onclick="fitAllStations()">🗺️</button>
+  <button class="tool-btn" onclick="demoUnlockCurrent()">🎮</button>
+  <button class="tool-btn" onclick="resetGame(true)">🔄</button>
+</div>
+<div id="map"></div>
+<div class="bottom-panel">
+  <div class="station-meta"><span class="station-tag" id="stationTag">定點 #1</span><span class="distance-tag" id="distanceTag">計算距離中...</span></div>
+  <div class="station-name" id="stationName">載入中...</div>
+  <div class="station-sub" id="stationSub">請允許瀏覽器存取位置以感應光圈</div>
+  <button id="playBtn" class="action-btn locked" onclick="handlePlayClick()">🔒 走進 50 公尺光圈自動播放</button>
+  <div class="panel-footer">
+    <button class="pass-btn" onclick="openPasscodeModal()">🔑 輸入現場密碼</button>
+    <div class="nav-arrows"><button class="mini-btn" onclick="switchStation(-1)">◀ 上一站</button><button class="mini-btn" onclick="switchStation(1)">下一站 ▶</button></div>
   </div>
-  <div class="floating-tools">
-    <button id="bgmBtn" class="bgm-pill" onclick="toggleBGM()">🎵 主題曲：關</button>
-    <button class="tool-btn" onclick="centerOnPlayer()" title="我的位置">📍</button>
-    <button class="tool-btn" onclick="fitAllStations()" title="全部路線">🗺️</button>
-    <button class="tool-btn" onclick="demoUnlockCurrent()" title="遠端一鍵體驗">🎮</button>
-    <button class="tool-btn" onclick="resetGame(true)" title="重新開始">🔄</button>
+</div>
+<div class="modal-backdrop" id="videoModal">
+  <div class="video-card">
+    <div class="video-header"><h3 id="modalTitle">定點動態導讀</h3><button class="close-modal" onclick="closeVideoModal()">✕</button></div>
+    <div class="video-wrapper"><iframe id="ytPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+    <div class="video-footer"><div class="stamp-earned-banner" id="stampBanner">🎉 已自動為您點亮本定點集章！</div><button class="done-btn" onclick="closeVideoModal()">✅ 看完了！關閉視窗前往下一站</button></div>
   </div>
-  <div id="map"></div>
-  <div class="bottom-panel">
-    <div class="station-meta">
-      <span class="station-tag" id="stationTag">定點 #1</span>
-      <span class="distance-tag" id="distanceTag">計算距離中...</span>
-    </div>
-    <div class="station-name" id="stationName">載入中...</div>
-    <div class="station-sub" id="stationSub">請允許瀏覽器存取位置以感應光圈</div>
-    <button id="playBtn" class="action-btn locked" onclick="handlePlayClick()">🔒 走進 50 公尺光圈自動播放</button>
-    <div class="panel-footer">
-      <button class="pass-btn" onclick="openPasscodeModal()">🔑 輸入現場密碼</button>
-      <div class="nav-arrows">
-        <button class="mini-btn" onclick="switchStation(-1)">◀ 上一站</button>
-        <button class="mini-btn" onclick="switchStation(1)">下一站 ▶</button>
-      </div>
-    </div>
+</div>
+<div class="modal-backdrop" id="passcodeModal">
+  <div class="passcode-box">
+    <h4>🔑 輸入現場通關密碼</h4><p id="passcodeHint">請輸入定點 3 位數密碼（101～106）</p>
+    <input type="tel" maxlength="4" id="passcodeInput" class="passcode-input" placeholder="101" />
+    <div style="display:flex;gap:8px;"><button class="mini-btn" style="flex:1;padding:12px;" onclick="closePasscodeModal()">取消</button><button class="done-btn" style="flex:2;" onclick="verifyPasscode()">解鎖播放</button></div>
   </div>
-  <div class="modal-backdrop" id="videoModal">
-    <div class="video-card">
-      <div class="video-header">
-        <h3 id="modalTitle">定點動態導讀</h3>
-        <button class="close-modal" onclick="closeVideoModal()">✕</button>
-      </div>
-      <div class="video-wrapper"><iframe id="ytPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-      <div class="video-footer">
-        <div class="stamp-earned-banner" id="stampBanner">🎉 已自動為您點亮本定點集章！</div>
-        <button class="done-btn" onclick="closeVideoModal()">✅ 看完了！關閉視窗前往下一站</button>
-      </div>
-    </div>
+</div>
+<div class="modal-backdrop" id="victoryModal">
+  <div class="victory-card">
+    <div style="font-size:48px;margin-bottom:8px;">🏆</div>
+    <h3 style="font-size:20px;font-weight:800;color:#92400e;margin-bottom:8px;">台中舊城全制霸！</h3>
+    <p style="font-size:13px;color:#78350f;line-height:1.6;margin-bottom:16px;">恭喜你走訪完 6 座歷史地標並完成所有 10 秒動態導讀！</p>
+    <div style="display:flex;gap:8px;"><button class="mini-btn" style="flex:1;padding:14px;font-size:14px;" onclick="resetGame(false)">🔄 重新開始</button><button class="done-btn" style="flex:1;background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">太棒了！</button></div>
   </div>
-  <div class="modal-backdrop" id="passcodeModal">
-    <div class="passcode-box">
-      <h4>🔑 輸入現場通關密碼</h4>
-      <p id="passcodeHint">請輸入定點 3 位數密碼（101～106）</p>
-      <input type="tel" maxlength="4" id="passcodeInput" class="passcode-input" placeholder="101" />
-      <div style="display:flex; gap:8px;">
-        <button class="mini-btn" style="flex:1; padding:12px;" onclick="closePasscodeModal()">取消</button>
-        <button class="done-btn" style="flex:2;" onclick="verifyPasscode()">解鎖播放</button>
-      </div>
-    </div>
-  </div>
-  <div class="modal-backdrop" id="victoryModal">
-    <div class="victory-card">
-      <div style="font-size:48px; margin-bottom:8px;">🏆</div>
-      <h3 style="font-size:20px; font-weight:800; color:#92400e; margin-bottom:8px;">台中舊城全制霸！</h3>
-      <p style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:16px;">恭喜你走訪完 6 座歷史地標並完成所有 10 秒動態導讀！</p>
-      <div style="display:flex; gap:8px;">
-        <button class="mini-btn" style="flex:1; padding:14px; font-size:14px;" onclick="resetGame(false)">🔄 重新開始</button>
-        <button class="done-btn" style="flex:1; background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">太棒了！</button>
-      </div>
-    </div>
-  </div>
-  <script>
-    const TRIGGER_RADIUS_METERS = 50;
-    const stations = [
-      { id: 1, code: "101", name: "1889 臺中公園・望月亭", subtitle: "Wangyue Pavilion", lat: 24.14496, lng: 120.68443, youtubeId: "yBPWEuuPhM0" },
-      { id: 2, code: "102", name: "綠川・櫻橋水岸重生", subtitle: "Luchuan Sakura Bridge", lat: 24.13815, lng: 120.68412, youtubeId: "GNlAXr5WbTw" },
-      { id: 3, code: "103", name: "1927 宮原眼科", subtitle: "Miyahara", lat: 24.13782, lng: 120.68345, youtubeId: "C59rHqDQm-g" },
-      { id: 4, code: "104", name: "1917 舊臺中火車站", subtitle: "Old Taichung Station", lat: 24.13688, lng: 120.68502, youtubeId: "M5S5jlHNpX0" },
-      { id: 5, code: "105", name: "三百年信仰・臺中萬春宮", subtitle: "Wanchun Temple", lat: 24.14225, lng: 120.68155, youtubeId: "JJBgeqaEH48" },
-      { id: 6, code: "106", name: "1913 國定古蹟臺中州廳", subtitle: "Taichung Prefectural Hall", lat: 24.13765, lng: 120.67755, youtubeId: "Wy4qRThRlwY" }
-    ];
-    let collectedIds = JSON.parse(localStorage.getItem("taichung_guide_stamps") || "[]");
-    let autoTriggeredIds = [], selectedIndex = 0, userLat = null, userLng = null, firstFixDone = false;
-    const bgmAudio = document.getElementById("bgmAudio"), bgmBtn = document.getElementById("bgmBtn");
-    let userWantsBGM = false;
-    function toggleBGM() {
-      if (!userWantsBGM) {
-        bgmAudio.volume = 0.45;
-        bgmAudio.play().then(() => { userWantsBGM = true; bgmBtn.classList.add("playing"); bgmBtn.textContent = "🎵 主題曲：播放中"; }).catch(() => { alert("請再點一下播放音樂，或確認網路連線正常喔！"); });
-      } else { userWantsBGM = false; bgmAudio.pause(); bgmBtn.classList.remove("playing"); bgmBtn.textContent = "🎵 主題曲：關"; }
-    }
-    function resetGame(needConfirm) {
-      if (needConfirm && !confirm("確定要清除所有集章紀錄並重新開始嗎？")) return;
-      collectedIds = []; autoTriggeredIds = []; selectedIndex = 0;
-      localStorage.removeItem("taichung_guide_stamps");
-      document.getElementById("victoryModal").classList.remove("show");
-      updateUI(); fitAllStations();
-    }
-    let map = null, playerMarker = null, playerAccuracyCircle = null;
-    const stationCircles = [];
-    try {
-      if (typeof L !== "undefined") {
-        map = L.map("map", { zoomControl: false }).setView([24.1395, 120.6825], 16);
-        L.tileLayer("https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}", { attribution: "&copy; 內政部國土測繪中心", maxZoom: 19 }).addTo(map);
-        L.polyline(stations.map(s => [s.lat, s.lng]), { color: "#2d8a68", weight: 4, opacity: 0.55, dashArray: "8, 10" }).addTo(map);
-        stations.forEach((st, idx) => {
-          const circle = L.circle([st.lat, st.lng], { radius: TRIGGER_RADIUS_METERS, color: "#2d8a68", weight: 2, fillColor: "#34d399", fillOpacity: 0.18 }).addTo(map);
-          stationCircles.push(circle);
-          const icon = L.divIcon({ className: "", html: `<div class="poi-pin" id="pin-${st.id}">${st.id}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
-          const marker = L.marker([st.lat, st.lng], { icon }).addTo(map);
-          marker.on("click", () => { selectedIndex = idx; updateUI(); if (map) map.panTo([st.lat, st.lng]); });
-        });
-      }
-    } catch (e) {}
-    function startGPSTracking() {
-      if (!("geolocation" in navigator)) { document.getElementById("gpsText").textContent = "不支援 GPS"; return; }
-      navigator.geolocation.watchPosition((pos) => {
-        userLat = pos.coords.latitude; userLng = pos.coords.longitude;
-        const acc = Math.round(pos.coords.accuracy);
-        document.getElementById("gpsBadge").classList.add("active");
-        document.getElementById("gpsText").textContent = `GPS 已連線 (±${acc}m)`;
-        if (map && typeof L !== "undefined") {
-          if (!playerMarker) {
-            const pIcon = L.divIcon({ className: "", html: `<div class="player-marker"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
-            playerMarker = L.marker([userLat, userLng], { icon: pIcon, zIndexOffset: 999 }).addTo(map);
-            playerAccuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "#3b82f6", weight: 1, fillColor: "#3b82f6", fillOpacity: 0.1 }).addTo(map);
-          } else { playerMarker.setLatLng([userLat, userLng]); playerAccuracyCircle.setLatLng([userLat, userLng]); playerAccuracyCircle.setRadius(acc); }
-        }
-        autoTriggerInRange(); updateUI();
-        if (!firstFixDone && map) { firstFixDone = true; if (getDistanceMeters(userLat, userLng, 24.1395, 120.6825) < 3000) map.setView([userLat, userLng], 17); }
-      }, () => { document.getElementById("gpsText").textContent = "請開啟定位權限"; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
-    }
-    function getDistanceMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371000, dLat = ((lat2 - lat1) * Math.PI) / 180, dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-    function autoTriggerInRange() {
-      if (userLat === null) return;
-      stations.forEach((st, idx) => {
-        const d = getDistanceMeters(userLat, userLng, st.lat, st.lng);
-        if (d <= TRIGGER_RADIUS_METERS && !collectedIds.includes(st.id) && !autoTriggeredIds.includes(st.id)) {
-          autoTriggeredIds.push(st.id); selectedIndex = idx;
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-          openVideoModal(st);
-        }
-      });
-    }
-    function updateUI() {
-      document.getElementById("stampRow").innerHTML = stations.map(st => {
-        const done = collectedIds.includes(st.id);
-        return `<div class="stamp-slot ${done ? "collected" : ""}">${done ? "✓ #" + st.id : "#" + st.id}</div>`;
-      }).join("");
-      stations.forEach((st, idx) => {
-        const done = collectedIds.includes(st.id);
-        const inRange = (userLat !== null ? getDistanceMeters(userLat, userLng, st.lat, st.lng) : Infinity) <= TRIGGER_RADIUS_METERS;
-        const pinEl = document.getElementById(`pin-${st.id}`);
-        if (pinEl) { pinEl.className = "poi-pin" + (done ? " done" : inRange ? " in-range" : ""); pinEl.textContent = done ? "✓" : st.id; }
-        if (stationCircles[idx]) stationCircles[idx].setStyle(done ? { color: "#10b981", fillColor: "#10b981", fillOpacity: 0.2 } : inRange ? { color: "#ff477e", fillColor: "#ff6b8b", fillOpacity: 0.35 } : { color: "#2d8a68", fillColor: "#34d399", fillOpacity: 0.18 });
-      });
-      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
-      document.getElementById("stationTag").textContent = `定點 #${current.id} / ${stations.length}` + (isDone ? "（已集章）" : "");
-      document.getElementById("stationName").textContent = current.name;
-      document.getElementById("stationSub").textContent = current.subtitle;
-      const distTag = document.getElementById("distanceTag"), playBtn = document.getElementById("playBtn");
-      if (userLat === null) {
-        distTag.textContent = "定位校準中"; distTag.classList.remove("in-range");
-        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
-        playBtn.textContent = isDone ? "▶️ 重溫 10 秒動態導讀" : "🔒 走進 50 公尺光圈自動播放";
-        return;
-      }
-      const rawDist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
-      const dist = Math.round(rawDist / 5) * 5, inRange = rawDist <= TRIGGER_RADIUS_METERS;
-      if (inRange) {
-        distTag.textContent = "✨ 已進入光圈範圍"; distTag.classList.add("in-range");
-        playBtn.className = "action-btn unlocked"; playBtn.textContent = "🎬 按下播放 10 秒動態導讀";
-      } else {
-        distTag.textContent = `距離目標約 ${dist} 公尺`; distTag.classList.remove("in-range");
-        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
-        playBtn.textContent = isDone ? "▶️ 重溫 10 秒動態導讀" : `🔒 還差約 ${Math.max(5, dist - TRIGGER_RADIUS_METERS)} 公尺進入光圈`;
-      }
-    }
-    function switchStation(delta) { selectedIndex = (selectedIndex + delta + stations.length) % stations.length; if (map) map.panTo([stations[selectedIndex].lat, stations[selectedIndex].lng]); updateUI(); }
-    function centerOnPlayer() { if (userLat !== null && map) map.setView([userLat, userLng], 17); else alert("尚未取得您的 GPS 位置，請確認手機已開啟定位權限。"); }
-    function fitAllStations() { if (map && typeof L !== "undefined") map.fitBounds(L.latLngBounds(stations.map(s => [s.lat, s.lng])), { padding: [70, 70] }); }
-    function demoUnlockCurrent() { openVideoModal(stations[selectedIndex]); }
-    function handlePlayClick() {
-      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
-      if (userLat === null) { openPasscodeModal(); return; }
-      const dist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
-      if (dist <= TRIGGER_RADIUS_METERS || isDone) openVideoModal(current); else openPasscodeModal();
-    }
-    function openVideoModal(station) {
-      if (userWantsBGM && !bgmAudio.paused) bgmAudio.pause();
-      const isNewStamp = !collectedIds.includes(station.id);
-      if (isNewStamp) { collectedIds.push(station.id); 
+</div>
+<script>
+const TRIGGER_RADIUS_METERS=50;
+const stations=[
+  {id:1,code:"101",name:"1889 臺中公園・望月亭",subtitle:"Wangyue Pavilion",lat:24.14496,lng:120.68443,youtubeId:"yBPWEuuPhM0"},
+  {id:2,code:"102",name:"綠川・櫻橋水岸重生",subtitle:"Luchuan Sakura Bridge",lat:24.13815,lng:120.68412,youtubeId:"GNlAXr5WbTw"},
+  {id:3,code:"103",name:"1927 宮原眼科",subtitle:"Miyahara",lat:24.13782,lng:120.68345,youtubeId:"C59rHqDQm-g"},
+  {id:4,code:"104",name:"1917 舊臺中火車站",subtitle:"Old Taichung Station",lat:24.13688,lng:120.68502,youtubeId:"M5S5jlHNpX0"},
+  {id:5,code:"105",name:"三百年信仰・臺中萬春宮",subtitle:"Wanchun Temple",lat:24.14225,lng:120.68155,youtubeId:"JJBgeqaEH48"},
+  {id:6,code:"106",name:"1913 國定古蹟臺中州廳",subtitle:"Taichung Prefectural Hall",lat:24.13765,lng:120.67755,youtubeId:"Wy4qRThRlwY"}
+];
+let collectedIds=JSON.parse(localStorage.getItem("taichung_guide_stamps")||"[]"),autoTriggeredIds=[],selectedIndex=0,userLat=null,userLng=null,firstFixDone=false;
+const bgmAudio=document.getElementById("bgmAudio"),bgmBtn=document.getElementById("bgmBtn");
+let userWantsBGM=false;
+function toggleBGM(){if(!userWantsBGM){bgmAudio.volume=0.45;bgmAudio.play().then(()=>{userWantsBGM=true;bgmBtn.classList.add("playing");bgmBtn.textContent="🎵 主題曲：播放中"}).catch(()=>alert("請再點一下播放音樂喔！"));}else{userWantsBGM=false;bgmAudio.pause();bgmBtn.classList.remove("playing");bgmBtn.textContent="🎵 主題曲：關"}}
+function resetGame(needConfirm){if(needConfirm&&!confirm("確定要清除所有集章紀錄並重新開始嗎？"))return;collectedIds=[];autoTriggeredIds=[];selectedIndex=0;localStorage.removeItem("taichung_guide_stamps");document.getElementById("victoryModal").classList.remove("show");updateUI();fitAllStations()}
+let map=null,playerMarker=null,playerAccuracyCircle=null;const stationCircles=[];
+try{if(typeof L!=="undefined"){map=L.map("map",{zoomControl:false}).setView([24.1395,120.6825],16);L.tileLayer("https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}",{attribution:"&copy; 內政部國土測繪中心",maxZoom:19}).addTo(map);L.polyline(stations.map(s=>[s.lat,s.lng]),{color:"#2d8a68",weight:4,opacity:0.55,dashArray:"8, 10"}).addTo(map);stations.forEach((st,idx)=>{const circle=L.circle([st.lat,st.lng],{radius:TRIGGER_RADIUS_METERS,color:"#2d8a68",weight:2,fillColor:"#34d399",fillOpacity:0.18}).addTo(map);stationCircles.push(circle);const icon=L.divIcon({className:"",html:`<div class="poi-pin" id="pin-${st.id}">${st.id}</div>`,iconSize:[34,34],iconAnchor:[17,17]});const marker=L.marker([st.lat,st.lng],{icon}).addTo(map);marker.on("click",()=>{selectedIndex=idx;updateUI();if(map)map.panTo([st.lat,st.lng])})})}}catch(e){}
+function startGPSTracking(){if(!("geolocation"in navigator)){document.getElementById("gpsText").textContent="不支援 GPS";return}navigator.geolocation.watchPosition(pos=>{userLat=pos.coords.latitude;userLng=pos.coords.longitude;const acc=Math.round(pos.coords.accuracy);document.getElementById("gpsBadge").classList.add("active");document.getElementById("gpsText").textContent=`GPS 已連線 (±${acc}m)`;if(map&&typeof L!=="undefined"){if(!playerMarker){const pIcon=L.divIcon({className:"",html:`<div class="player-marker"></div>`,iconSize:[22,22],iconAnchor:[11,11]});playerMarker=L.marker([userLat,userLng],{icon:pIcon,zIndexOffset:999}).addTo(map);playerAccuracyCircle=L.circle([userLat,userLng],{radius:acc,color:"#3b82f6",weight:1,fillColor:"#3b82f6",fillOpacity:0.1}).addTo(map)}else{playerMarker.setLatLng([userLat,userLng]);playerAccuracyCircle.setLatLng([userLat,userLng]);playerAccuracyCircle.setRadius(acc)}}autoTriggerInRange();updateUI();if(!firstFixDone&&map){firstFixDone=true;if(getDistanceMeters(userLat,userLng,24.1395,120.6825)<3000)map.setView([userLat,userLng],17)}},()=>{document.getElementById("gpsText").textContent="請開啟定位權限"},{enableHighAccuracy:true,maximumAge:3000,timeout:10000})}
+function getDistanceMeters(lat1,lon1,lat2,lon2){const R=6371000,dLat=((lat2-lat1)*Math.PI)/180,dLon=((lon2-lon1)*Math.PI)/180,a=Math.sin(dLat/2)**2+Math.cos((lat1*Math.PI)/180)*Math.cos((lat2*Math.PI)/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+function autoTriggerInRange(){if(userLat===null)return;stations.forEach((st,idx)=>{const d=getDistanceMeters(userLat,userLng,st.lat,st.lng);if(d<=TRIGGER_RADIUS_METERS&&!collectedIds.includes(st.id)&&!autoTriggeredIds.includes(st.id)){autoTriggeredIds.push(st.id);selectedIndex=idx;if(navigator.vibrate)navigator.vibrate([200,100,200]);openVideoModal(st)}})}
+function updateUI(){document.getElementById("stampRow").innerHTML=stations.map(st=>{const done=collectedIds.includes(st.id);return`<div class="stamp-slot ${done?"collected":""}">${done?"✓ #"+st.id:"#"+st.id}</div>`}).join("");stations.forEach((st,idx)=>{const done=collectedIds.includes(st.id),inRange=(userLat!==null?getDistanceMeters(userLat,userLng,st.lat,st.lng):Infinity)<=TRIGGER_RADIUS_METERS,pinEl=document.getElementById(`pin-${st.id}`);if(pinEl){pinEl.className="poi-pin"+(done?" done":inRange?" in-range":"");pinEl.textContent=done?"✓":st.id}if(stationCircles[idx])stationCircles[idx].setStyle(done?{color:"#10b981",fillColor:"#10b981",fillOpacity:0.2}:inRange?{color:"#ff477e",fillColor:"#ff6b8b",fillOpacity:0.35}:{color:"#2d8a68",fillColor:"#34d399",fillOpacity:0.18})});const current=stations[selectedIndex],isDone=collectedIds.includes(current.id);document.getElementById("stationTag").textContent=`定點 #${current.id} / ${stations.length}`+(isDone?"（已集章）":"");document.getElementById("stationName").textContent=current.name;document.getElementById("stationSub").textContent=current.subtitle;const distTag=document.getElementById("distanceTag"),playBtn=document.getElementById("playBtn");if(userLat===null){distTag.textContent="定位校準中";distTag.classList.remove("in-range");playBtn.className=isDone?"action-btn unlocked":"action-btn locked";playBtn.textContent=isDone?"▶️ 重溫 10 秒動態導讀":"🔒 走進 50 公尺光圈自動播放";return}const rawDist=getDistanceMeters(userLat,userLng,current.lat,current.lng),dist=Math.round(rawDist/5)*5,inRange=rawDist<=TRIGGER_RADIUS_METERS;if(inRange){distTag.textContent="✨ 已進入光圈範圍";distTag.classList.add("in-range");playBtn.className="action-btn unlocked";playBtn.textContent="🎬 按下播放 10 秒動態導讀"}else{distTag.textContent=`距離目標約 ${dist} 公尺`;distTag.classList.remove("in-range");playBtn.className=isDone?"action-btn unlocked":"action-btn locked";playBtn.textContent=isDone?"▶️ 重溫 10 秒動態導讀":`🔒 還差約 ${Math.max(5,dist-TRIGGER_RADIUS_METERS)} 公尺進入光圈`}}
+function switchStation(delta){selectedIndex=(selectedIndex+delta+stations.length)%stations.length;if(map)map.panTo([stations[selectedIndex].lat,stations[selectedIndex].lng]);updateUI()}
+function centerOnPlayer(){if(userLat!==null&&map)map.setView([userLat,userLng],17);else alert("尚未取得您的 GPS 位置，請確認手機已開啟定位權限。")}
+function fitAllStations(){if(map&&typeof L!=="undefined")map.fitBounds(L.latLngBounds(stations.map(s=>[s.lat,s.lng])),{padding:[70,70]})}
+function demoUnlockCurrent(){openVideoModal(stations[selectedIndex])}
+function handlePlayClick(){const current=stations[selectedIndex],isDone=collectedIds.includes(current.id);if(userLat===null){openPasscodeModal();return}const dist=getDistanceMeters(userLat,userLng,current.lat,current.lng);if(dist<=TRIGGER_RADIUS_METERS||isDone)openVideoModal(current);else openPasscodeModal()}
+function openVideoModal(station){if(userWantsBGM&&!bgmAudio.paused)bgmAudio.pause();const isNewStamp=!collectedIds.includes(station.id);if(isNewStamp){collectedIds.push(station.id);localStorage.setItem("taichung_guide_stamps",JSON.stringify(collectedIds));updateUI()}document.getElementById("modalTitle").textContent=`#${station.id} ${station.name}`;document.getElementById("stampBanner").textContent=isNewStamp?`🎉 恭喜！已蓋上「#${station.id}」紀念章（${collectedIds.length}/${stations.length}）`:`✅ 您已收集此定點紀念章（${collectedIds.length}/${stations.length}）`;document.getElementById("ytPlayer").src=`https://www.youtube.com/embed/${station.youtubeId}?autoplay=1&rel=0&playsinline=1`;document.getElementById("videoModal").classList.add("show")}
+function closeVideoModal(){document.getElementById("ytPlayer").src="";document.getElementById("videoModal").classList.remove("show");if(userWantsBGM)bgmAudio.play().catch(()=>{});if(collectedIds.length===stations.length)setTimeout(()=>document.getElementById("victoryModal").classList.add("show"),350)}
+function openPasscodeModal(){const current=stations[selectedIndex];document.getElementById("passcodeHint").textContent=`請輸入定點 #${current.id}「${current.name}」現場 3 位數密碼（測試碼 ${current.code}）`;document.getElementById("passcodeInput").value="";document.getElementById("passcodeModal").classList.add("show")}
+function closePasscodeModal(){document.getElementById("passcodeModal").classList.remove("show")}
+function verifyPasscode(){const current=stations[selectedIndex];if(document.getElementById("passcodeInput").value.trim()===current.code){closePasscodeModal();openVideoModal(current)}else alert("密碼不正確喔！")}
+updateUI();fitAllStations();startGPSTracking();
+</script>
+</body>
+</html>
