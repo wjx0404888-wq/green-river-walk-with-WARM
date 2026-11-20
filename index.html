@@ -254,30 +254,4 @@
     function openVideoModal(station) {
       if (userWantsBGM && !bgmAudio.paused) bgmAudio.pause();
       const isNewStamp = !collectedIds.includes(station.id);
-      if (isNewStamp) { collectedIds.push(station.id); localStorage.setItem("taichung_guide_stamps", JSON.stringify(collectedIds)); updateUI(); }
-      document.getElementById("modalTitle").textContent = `#${station.id} ${station.name}`;
-      document.getElementById("stampBanner").textContent = isNewStamp ? `🎉 恭喜！已蓋上「#${station.id}」紀念章（${collectedIds.length}/${stations.length}）` : `✅ 您已收集此定點紀念章（${collectedIds.length}/${stations.length}）`;
-      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${station.youtubeId}?autoplay=1&rel=0&playsinline=1`;
-      document.getElementById("videoModal").classList.add("show");
-    }
-    function closeVideoModal() {
-      document.getElementById("ytPlayer").src = "";
-      document.getElementById("videoModal").classList.remove("show");
-      if (userWantsBGM) bgmAudio.play().catch(() => {});
-      if (collectedIds.length === stations.length) setTimeout(() => document.getElementById("victoryModal").classList.add("show"), 350);
-    }
-    function openPasscodeModal() {
-      const current = stations[selectedIndex];
-      document.getElementById("passcodeHint").textContent = `請輸入定點 #${current.id}「${current.name}」現場 3 位數密碼（測試碼 ${current.code}）`;
-      document.getElementById("passcodeInput").value = "";
-      document.getElementById("passcodeModal").classList.add("show");
-    }
-    function closePasscodeModal() { document.getElementById("passcodeModal").classList.remove("show"); }
-    function verifyPasscode() {
-      const current = stations[selectedIndex];
-      if (document.getElementById("passcodeInput").value.trim() === current.code) { closePasscodeModal(); openVideoModal(current); } else alert("密碼不正確喔！");
-    }
-    updateUI(); fitAllStations(); startGPSTracking();
-  </script>
-</body>
-</html>
+      if (isNewStamp) { collectedIds.push(station.id); 
