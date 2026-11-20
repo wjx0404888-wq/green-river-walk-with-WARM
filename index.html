@@ -3,19 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>&#21488;&#20013;&#33290;&#22478;&#23450;&#40670;&#23566;&#35712;&#65372;LBS &#23526;&#22659;&#36208;&#35712;&#36938;&#25138;</title>
+  <title>台中舊城定點導讀｜LBS 實境走讀遊戲</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
-    :root {
-      --primary: #2d8a68;
-      --primary-light: #e6f5ef;
-      --accent: #ff6b8b;
-      --accent-glow: rgba(255, 107, 139, 0.45);
-      --bg-card: rgba(255, 255, 255, 0.97);
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
-    }
+    :root { --primary: #2d8a68; --primary-light: #e6f5ef; --accent: #ff6b8b; --accent-glow: rgba(255,107,139,0.45); --bg-card: rgba(255,255,255,0.97); --text-main: #1f2937; --text-muted: #6b7280; }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body, html { width: 100%; height: 100%; font-family: sans-serif; overflow: hidden; background: #dce7e2; color: var(--text-main); }
     #map { width: 100%; height: 100%; z-index: 1; background: #dce7e2; }
@@ -72,126 +64,105 @@
 </head>
 <body>
   <audio id="bgmAudio" src="bgm.mp3" loop preload="auto"></audio>
-
   <div class="top-hud">
     <div class="hud-header">
-      <div class="game-title">&#127807; &#21488;&#20013;&#33290;&#22478;&#12539;&#23526;&#22659;&#21205;&#24907;&#23566;&#35712;</div>
-      <div id="gpsBadge" class="gps-badge"><span class="gps-dot"></span><span id="gpsText">&#23450;&#20301;&#25628;&#23563;&#20013;...</span></div>
+      <div class="game-title">🌿 台中舊城・實境動態導讀</div>
+      <div id="gpsBadge" class="gps-badge"><span class="gps-dot"></span><span id="gpsText">定位搜尋中...</span></div>
     </div>
     <div class="stamp-row" id="stampRow"></div>
   </div>
   <div class="floating-tools">
-    <button id="bgmBtn" class="bgm-pill" onclick="toggleBGM()">&#127925; &#20027;&#38988;&#26354;&#65306;&#38364;</button>
-    <button class="tool-btn" onclick="centerOnPlayer()" title="我的位置">&#128205;</button>
-    <button class="tool-btn" onclick="fitAllStations()" title="全部路線">&#128506;&#65039;</button>
-    <button class="tool-btn" onclick="demoUnlockCurrent()" title="遠端一鍵體驗">&#127918;</button>
-    <button class="tool-btn" onclick="resetGame(true)" title="重新開始">&#128260;</button>
+    <button id="bgmBtn" class="bgm-pill" onclick="toggleBGM()">🎵 主題曲：關</button>
+    <button class="tool-btn" onclick="centerOnPlayer()" title="我的位置">📍</button>
+    <button class="tool-btn" onclick="fitAllStations()" title="全部路線">🗺️</button>
+    <button class="tool-btn" onclick="demoUnlockCurrent()" title="遠端一鍵體驗">🎮</button>
+    <button class="tool-btn" onclick="resetGame(true)" title="重新開始">🔄</button>
   </div>
   <div id="map"></div>
   <div class="bottom-panel">
     <div class="station-meta">
-      <span class="station-tag" id="stationTag">&#23450;&#40670; #1</span>
-      <span class="distance-tag" id="distanceTag">&#35336;&#31639;&#36317;&#38626;&#20013;...</span>
+      <span class="station-tag" id="stationTag">定點 #1</span>
+      <span class="distance-tag" id="distanceTag">計算距離中...</span>
     </div>
-    <div class="station-name" id="stationName">&#36617;&#20837;&#20013;...</div>
-    <div class="station-sub" id="stationSub">&#35531;&#20801;&#35377;&#28687;&#35261;&#22120;&#23384;&#21462;&#20301;&#32622;&#20197;&#24863;&#25033;&#20809;&#22280;</div>
-    <button id="playBtn" class="action-btn locked" onclick="handlePlayClick()">&#128274; &#36208;&#36914; 50 &#20844;&#23610;&#20809;&#22280;&#33258;&#21205;&#25773;&#25918;</button>
+    <div class="station-name" id="stationName">載入中...</div>
+    <div class="station-sub" id="stationSub">請允許瀏覽器存取位置以感應光圈</div>
+    <button id="playBtn" class="action-btn locked" onclick="handlePlayClick()">🔒 走進 50 公尺光圈自動播放</button>
     <div class="panel-footer">
-      <button class="pass-btn" onclick="openPasscodeModal()">&#128273; &#36664;&#20837;&#29694;&#22580;&#23494;&#30908;</button>
+      <button class="pass-btn" onclick="openPasscodeModal()">🔑 輸入現場密碼</button>
       <div class="nav-arrows">
-        <button class="mini-btn" onclick="switchStation(-1)">&#9664; &#19978;&#19968;&#31449;</button>
-        <button class="mini-btn" onclick="switchStation(1)">&#19979;&#19968;&#31449; &#9654;</button>
+        <button class="mini-btn" onclick="switchStation(-1)">◀ 上一站</button>
+        <button class="mini-btn" onclick="switchStation(1)">下一站 ▶</button>
       </div>
     </div>
   </div>
   <div class="modal-backdrop" id="videoModal">
     <div class="video-card">
       <div class="video-header">
-        <h3 id="modalTitle">&#23450;&#40670;&#21205;&#24907;&#23566;&#35712;</h3>
-        <button class="close-modal" onclick="closeVideoModal()">&#10005;</button>
+        <h3 id="modalTitle">定點動態導讀</h3>
+        <button class="close-modal" onclick="closeVideoModal()">✕</button>
       </div>
       <div class="video-wrapper"><iframe id="ytPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
       <div class="video-footer">
-        <div class="stamp-earned-banner" id="stampBanner">&#127881; &#24050;&#33258;&#21205;&#28858;&#24744;&#40670;&#20142;&#26412;&#23450;&#40670;&#38598;&#31456;&#65281;</div>
-        <button class="done-btn" onclick="closeVideoModal()">&#9989; &#30475;&#23436;&#20102;&#65281;&#38364;&#38281;&#35222;&#31383;&#21069;&#24448;&#19979;&#19968;&#31449;</button>
+        <div class="stamp-earned-banner" id="stampBanner">🎉 已自動為您點亮本定點集章！</div>
+        <button class="done-btn" onclick="closeVideoModal()">✅ 看完了！關閉視窗前往下一站</button>
       </div>
     </div>
   </div>
   <div class="modal-backdrop" id="passcodeModal">
     <div class="passcode-box">
-      <h4>&#128273; &#36664;&#20837;&#29694;&#22580;&#36890;&#38364;&#23494;&#30908;</h4>
-      <p id="passcodeHint">&#35531;&#36664;&#20837;&#23450;&#40670; 3 &#20301;&#25976;&#23494;&#30908;&#65288;101&#65374;106&#65289;</p>
+      <h4>🔑 輸入現場通關密碼</h4>
+      <p id="passcodeHint">請輸入定點 3 位數密碼（101～106）</p>
       <input type="tel" maxlength="4" id="passcodeInput" class="passcode-input" placeholder="101" />
       <div style="display:flex; gap:8px;">
-        <button class="mini-btn" style="flex:1; padding:12px;" onclick="closePasscodeModal()">&#21462;&#28040;</button>
-        <button class="done-btn" style="flex:2;" onclick="verifyPasscode()">&#35299;&#37782;&#25773;&#25918;</button>
+        <button class="mini-btn" style="flex:1; padding:12px;" onclick="closePasscodeModal()">取消</button>
+        <button class="done-btn" style="flex:2;" onclick="verifyPasscode()">解鎖播放</button>
       </div>
     </div>
   </div>
   <div class="modal-backdrop" id="victoryModal">
     <div class="victory-card">
-      <div style="font-size:48px; margin-bottom:8px;">&#127942;</div>
-      <h3 style="font-size:20px; font-weight:800; color:#92400e; margin-bottom:8px;">&#21488;&#20013;&#33290;&#22478;&#20840;&#21046;&#38712;&#65281;</h3>
-      <p style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:16px;">&#24685;&#21916;&#20320;&#36208;&#35370;&#23436; 6 &#24231;&#27511;&#21490;&#22320;&#27161;&#20006;&#23436;&#25104;&#25152;&#26377; 10 &#31186;&#21205;&#24907;&#23566;&#35712;&#65281;</p>
+      <div style="font-size:48px; margin-bottom:8px;">🏆</div>
+      <h3 style="font-size:20px; font-weight:800; color:#92400e; margin-bottom:8px;">台中舊城全制霸！</h3>
+      <p style="font-size:13px; color:#78350f; line-height:1.6; margin-bottom:16px;">恭喜你走訪完 6 座歷史地標並完成所有 10 秒動態導讀！</p>
       <div style="display:flex; gap:8px;">
-        <button class="mini-btn" style="flex:1; padding:14px; font-size:14px;" onclick="resetGame(false)">&#128260; &#37325;&#26032;&#38283;&#22987;</button>
-        <button class="done-btn" style="flex:1; background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">&#22826;&#26834;&#20102;&#65281;</button>
+        <button class="mini-btn" style="flex:1; padding:14px; font-size:14px;" onclick="resetGame(false)">🔄 重新開始</button>
+        <button class="done-btn" style="flex:1; background:#d97706;" onclick="document.getElementById('victoryModal').classList.remove('show')">太棒了！</button>
       </div>
     </div>
   </div>
   <script>
     const TRIGGER_RADIUS_METERS = 50;
     const stations = [
-      { id: 1, code: "101", name: "1889 \u81fa\u4e2d\u516c\u5712\u30fb\u671b\u6708\u4ead", subtitle: "Wangyue Pavilion", lat: 24.14496, lng: 120.68443, youtubeId: "yBPWEuuPhM0" },
-      { id: 2, code: "102", name: "\u7da0\u5ddd\u30fb\u6afb\u6a4b\u6c34\u5cb8\u91cd\u751f", subtitle: "Luchuan Sakura Bridge", lat: 24.13815, lng: 120.68412, youtubeId: "GNlAXr5WbTw" },
-      { id: 3, code: "103", name: "1927 \u5bae\u539f\u773c\u79d1", subtitle: "Miyahara", lat: 24.13782, lng: 120.68345, youtubeId: "C59rHqDQm-g" },
-      { id: 4, code: "104", name: "1917 \u820a\u81fa\u4e2d\u706b\u8eca\u7ad9", subtitle: "Old Taichung Station", lat: 24.13688, lng: 120.68502, youtubeId: "M5S5jlHNpX0" },
-      { id: 5, code: "105", name: "\u4e09\u767e\u5e74\u4fe1\u4ef0\u30fb\u81fa\u4e2d\u842c\u6625\u5bae", subtitle: "Wanchun Temple", lat: 24.13985, lng: 120.68118, youtubeId: "JJBgeqaEH48" },
-      { id: 6, code: "106", name: "1913 \u570b\u5b9a\u53e4\u8e5f\u81fa\u4e2d\u5dde\u5ef3", subtitle: "Taichung Prefectural Hall", lat: 24.13765, lng: 120.67755, youtubeId: "Wy4qRThRlwY" }
+      { id: 1, code: "101", name: "1889 臺中公園・望月亭", subtitle: "Wangyue Pavilion", lat: 24.14496, lng: 120.68443, youtubeId: "yBPWEuuPhM0" },
+      { id: 2, code: "102", name: "綠川・櫻橋水岸重生", subtitle: "Luchuan Sakura Bridge", lat: 24.13815, lng: 120.68412, youtubeId: "GNlAXr5WbTw" },
+      { id: 3, code: "103", name: "1927 宮原眼科", subtitle: "Miyahara", lat: 24.13782, lng: 120.68345, youtubeId: "C59rHqDQm-g" },
+      { id: 4, code: "104", name: "1917 舊臺中火車站", subtitle: "Old Taichung Station", lat: 24.13688, lng: 120.68502, youtubeId: "M5S5jlHNpX0" },
+      { id: 5, code: "105", name: "三百年信仰・臺中萬春宮", subtitle: "Wanchun Temple", lat: 24.13985, lng: 120.68118, youtubeId: "JJBgeqaEH48" },
+      { id: 6, code: "106", name: "1913 國定古蹟臺中州廳", subtitle: "Taichung Prefectural Hall", lat: 24.13765, lng: 120.67755, youtubeId: "Wy4qRThRlwY" }
     ];
     let collectedIds = JSON.parse(localStorage.getItem("taichung_guide_stamps") || "[]");
-    let autoTriggeredIds = [];
-    let selectedIndex = 0, userLat = null, userLng = null, firstFixDone = false;
-
-    const bgmAudio = document.getElementById("bgmAudio");
-    const bgmBtn = document.getElementById("bgmBtn");
+    let autoTriggeredIds = [], selectedIndex = 0, userLat = null, userLng = null, firstFixDone = false;
+    const bgmAudio = document.getElementById("bgmAudio"), bgmBtn = document.getElementById("bgmBtn");
     let userWantsBGM = false;
-
     function toggleBGM() {
       if (!userWantsBGM) {
         bgmAudio.volume = 0.45;
-        bgmAudio.play().then(() => {
-          userWantsBGM = true;
-          bgmBtn.classList.add("playing");
-          bgmBtn.textContent = "\ud83c\udfb5 \u4e3b\u984c\u66f2\uff1a\u64ad\u653e\u4e2d";
-        }).catch(() => {
-          alert("\u8acb\u518d\u9ede\u4e00\u4e0b\u64ad\u653e\u97f3\u6a02\uff0c\u6216\u78ba\u8a8d\u7db2\u8def\u9023\u7dda\u6b63\u5e38\u5594\uff01");
-        });
-      } else {
-        userWantsBGM = false;
-        bgmAudio.pause();
-        bgmBtn.classList.remove("playing");
-        bgmBtn.textContent = "\ud83c\udfb5 \u4e3b\u984c\u66f2\uff1a\u95dc";
-      }
+        bgmAudio.play().then(() => { userWantsBGM = true; bgmBtn.classList.add("playing"); bgmBtn.textContent = "🎵 主題曲：播放中"; }).catch(() => { alert("請再點一下播放音樂，或確認網路連線正常喔！"); });
+      } else { userWantsBGM = false; bgmAudio.pause(); bgmBtn.classList.remove("playing"); bgmBtn.textContent = "🎵 主題曲：關"; }
     }
-
     function resetGame(needConfirm) {
-      if (needConfirm && !confirm("\u78ba\u5b9a\u8981\u6e05\u9664\u6240\u6709\u96c6\u7ae0\u7d00\u9304\u4e26\u91cd\u65b0\u958b\u59cb\u55ce\uff1f")) return;
-      collectedIds = [];
-      autoTriggeredIds = [];
-      selectedIndex = 0;
+      if (needConfirm && !confirm("確定要清除所有集章紀錄並重新開始嗎？")) return;
+      collectedIds = []; autoTriggeredIds = []; selectedIndex = 0;
       localStorage.removeItem("taichung_guide_stamps");
       document.getElementById("victoryModal").classList.remove("show");
-      updateUI();
-      fitAllStations();
+      updateUI(); fitAllStations();
     }
-
     let map = null, playerMarker = null, playerAccuracyCircle = null;
     const stationCircles = [];
     try {
       if (typeof L !== "undefined") {
         map = L.map("map", { zoomControl: false }).setView([24.1395, 120.6825], 16);
-        L.tileLayer("https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}", { attribution: "&copy; \u5167\u653f\u90e8\u570b\u571f\u6e2c\u7e6a\u4e2d\u5fc3", maxZoom: 19 }).addTo(map);
+        L.tileLayer("https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}", { attribution: "&copy; 內政部國土測繪中心", maxZoom: 19 }).addTo(map);
         L.polyline(stations.map(s => [s.lat, s.lng]), { color: "#2d8a68", weight: 4, opacity: 0.55, dashArray: "8, 10" }).addTo(map);
         stations.forEach((st, idx) => {
           const circle = L.circle([st.lat, st.lng], { radius: TRIGGER_RADIUS_METERS, color: "#2d8a68", weight: 2, fillColor: "#34d399", fillOpacity: 0.18 }).addTo(map);
@@ -201,32 +172,24 @@
           marker.on("click", () => { selectedIndex = idx; updateUI(); if (map) map.panTo([st.lat, st.lng]); });
         });
       }
-    } catch (e) { console.log("Map fallback", e); }
-
+    } catch (e) {}
     function startGPSTracking() {
-      if (!("geolocation" in navigator)) { document.getElementById("gpsText").textContent = "\u4e0d\u652f\u63f4 GPS"; return; }
+      if (!("geolocation" in navigator)) { document.getElementById("gpsText").textContent = "不支援 GPS"; return; }
       navigator.geolocation.watchPosition((pos) => {
         userLat = pos.coords.latitude; userLng = pos.coords.longitude;
         const acc = Math.round(pos.coords.accuracy);
         document.getElementById("gpsBadge").classList.add("active");
-        document.getElementById("gpsText").textContent = `GPS \u5df2\u9023\u7dda (\u00b1${acc}m)`;
+        document.getElementById("gpsText").textContent = `GPS 已連線 (±${acc}m)`;
         if (map && typeof L !== "undefined") {
           if (!playerMarker) {
             const pIcon = L.divIcon({ className: "", html: `<div class="player-marker"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
             playerMarker = L.marker([userLat, userLng], { icon: pIcon, zIndexOffset: 999 }).addTo(map);
             playerAccuracyCircle = L.circle([userLat, userLng], { radius: acc, color: "#3b82f6", weight: 1, fillColor: "#3b82f6", fillOpacity: 0.1 }).addTo(map);
-          } else {
-            playerMarker.setLatLng([userLat, userLng]);
-            playerAccuracyCircle.setLatLng([userLat, userLng]);
-            playerAccuracyCircle.setRadius(acc);
-          }
+          } else { playerMarker.setLatLng([userLat, userLng]); playerAccuracyCircle.setLatLng([userLat, userLng]); playerAccuracyCircle.setRadius(acc); }
         }
         autoTriggerInRange(); updateUI();
-        if (!firstFixDone && map) {
-          firstFixDone = true;
-          if (getDistanceMeters(userLat, userLng, 24.1395, 120.6825) < 3000) map.setView([userLat, userLng], 17);
-        }
-      }, () => { document.getElementById("gpsText").textContent = "\u8acb\u958b\u555f\u5b9a\u4f4d\u6b0a\u9650"; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+        if (!firstFixDone && map) { firstFixDone = true; if (getDistanceMeters(userLat, userLng, 24.1395, 120.6825) < 3000) map.setView([userLat, userLng], 17); }
+      }, () => { document.getElementById("gpsText").textContent = "請開啟定位權限"; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
     }
     function getDistanceMeters(lat1, lon1, lat2, lon2) {
       const R = 6371000, dLat = ((lat2 - lat1) * Math.PI) / 180, dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -238,8 +201,7 @@
       stations.forEach((st, idx) => {
         const d = getDistanceMeters(userLat, userLng, st.lat, st.lng);
         if (d <= TRIGGER_RADIUS_METERS && !collectedIds.includes(st.id) && !autoTriggeredIds.includes(st.id)) {
-          autoTriggeredIds.push(st.id);
-          selectedIndex = idx;
+          autoTriggeredIds.push(st.id); selectedIndex = idx;
           if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
           openVideoModal(st);
         }
@@ -248,16 +210,74 @@
     function updateUI() {
       document.getElementById("stampRow").innerHTML = stations.map(st => {
         const done = collectedIds.includes(st.id);
-        return `<div class="stamp-slot ${done ? "collected" : ""}">${done ? "\u2713 #" + st.id : "#" + st.id}</div>`;
+        return `<div class="stamp-slot ${done ? "collected" : ""}">${done ? "✓ #" + st.id : "#" + st.id}</div>`;
       }).join("");
       stations.forEach((st, idx) => {
         const done = collectedIds.includes(st.id);
         const inRange = (userLat !== null ? getDistanceMeters(userLat, userLng, st.lat, st.lng) : Infinity) <= TRIGGER_RADIUS_METERS;
         const pinEl = document.getElementById(`pin-${st.id}`);
-        if (pinEl) { pinEl.className = "poi-pin" + (done ? " done" : inRange ? " in-range" : ""); pinEl.textContent = done ? "\u2713" : st.id; }
+        if (pinEl) { pinEl.className = "poi-pin" + (done ? " done" : inRange ? " in-range" : ""); pinEl.textContent = done ? "✓" : st.id; }
         if (stationCircles[idx]) stationCircles[idx].setStyle(done ? { color: "#10b981", fillColor: "#10b981", fillOpacity: 0.2 } : inRange ? { color: "#ff477e", fillColor: "#ff6b8b", fillOpacity: 0.35 } : { color: "#2d8a68", fillColor: "#34d399", fillOpacity: 0.18 });
       });
       const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
-      document.getElementById("stationTag").textContent = `\u5b9a\u9ede #${current.id} / ${stations.length}` + (isDone ? "\uff08\u5df2\u96c6\u7ae0\uff09" : "");
+      document.getElementById("stationTag").textContent = `定點 #${current.id} / ${stations.length}` + (isDone ? "（已集章）" : "");
       document.getElementById("stationName").textContent = current.name;
-     
+      document.getElementById("stationSub").textContent = current.subtitle;
+      const distTag = document.getElementById("distanceTag"), playBtn = document.getElementById("playBtn");
+      if (userLat === null) {
+        distTag.textContent = "定位校準中"; distTag.classList.remove("in-range");
+        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
+        playBtn.textContent = isDone ? "▶️ 重溫 10 秒動態導讀" : "🔒 走進 50 公尺光圈自動播放";
+        return;
+      }
+      const rawDist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
+      const dist = Math.round(rawDist / 5) * 5, inRange = rawDist <= TRIGGER_RADIUS_METERS;
+      if (inRange) {
+        distTag.textContent = "✨ 已進入光圈範圍"; distTag.classList.add("in-range");
+        playBtn.className = "action-btn unlocked"; playBtn.textContent = "🎬 按下播放 10 秒動態導讀";
+      } else {
+        distTag.textContent = `距離目標約 ${dist} 公尺`; distTag.classList.remove("in-range");
+        playBtn.className = isDone ? "action-btn unlocked" : "action-btn locked";
+        playBtn.textContent = isDone ? "▶️ 重溫 10 秒動態導讀" : `🔒 還差約 ${Math.max(5, dist - TRIGGER_RADIUS_METERS)} 公尺進入光圈`;
+      }
+    }
+    function switchStation(delta) { selectedIndex = (selectedIndex + delta + stations.length) % stations.length; if (map) map.panTo([stations[selectedIndex].lat, stations[selectedIndex].lng]); updateUI(); }
+    function centerOnPlayer() { if (userLat !== null && map) map.setView([userLat, userLng], 17); else alert("尚未取得您的 GPS 位置，請確認手機已開啟定位權限。"); }
+    function fitAllStations() { if (map && typeof L !== "undefined") map.fitBounds(L.latLngBounds(stations.map(s => [s.lat, s.lng])), { padding: [70, 70] }); }
+    function demoUnlockCurrent() { openVideoModal(stations[selectedIndex]); }
+    function handlePlayClick() {
+      const current = stations[selectedIndex], isDone = collectedIds.includes(current.id);
+      if (userLat === null) { openPasscodeModal(); return; }
+      const dist = getDistanceMeters(userLat, userLng, current.lat, current.lng);
+      if (dist <= TRIGGER_RADIUS_METERS || isDone) openVideoModal(current); else openPasscodeModal();
+    }
+    function openVideoModal(station) {
+      if (userWantsBGM && !bgmAudio.paused) bgmAudio.pause();
+      const isNewStamp = !collectedIds.includes(station.id);
+      if (isNewStamp) { collectedIds.push(station.id); localStorage.setItem("taichung_guide_stamps", JSON.stringify(collectedIds)); updateUI(); }
+      document.getElementById("modalTitle").textContent = `#${station.id} ${station.name}`;
+      document.getElementById("stampBanner").textContent = isNewStamp ? `🎉 恭喜！已蓋上「#${station.id}」紀念章（${collectedIds.length}/${stations.length}）` : `✅ 您已收集此定點紀念章（${collectedIds.length}/${stations.length}）`;
+      document.getElementById("ytPlayer").src = `https://www.youtube.com/embed/${station.youtubeId}?autoplay=1&rel=0&playsinline=1`;
+      document.getElementById("videoModal").classList.add("show");
+    }
+    function closeVideoModal() {
+      document.getElementById("ytPlayer").src = "";
+      document.getElementById("videoModal").classList.remove("show");
+      if (userWantsBGM) bgmAudio.play().catch(() => {});
+      if (collectedIds.length === stations.length) setTimeout(() => document.getElementById("victoryModal").classList.add("show"), 350);
+    }
+    function openPasscodeModal() {
+      const current = stations[selectedIndex];
+      document.getElementById("passcodeHint").textContent = `請輸入定點 #${current.id}「${current.name}」現場 3 位數密碼（測試碼 ${current.code}）`;
+      document.getElementById("passcodeInput").value = "";
+      document.getElementById("passcodeModal").classList.add("show");
+    }
+    function closePasscodeModal() { document.getElementById("passcodeModal").classList.remove("show"); }
+    function verifyPasscode() {
+      const current = stations[selectedIndex];
+      if (document.getElementById("passcodeInput").value.trim() === current.code) { closePasscodeModal(); openVideoModal(current); } else alert("密碼不正確喔！");
+    }
+    updateUI(); fitAllStations(); startGPSTracking();
+  </script>
+</body>
+</html>
