@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>綠川守護龍｜十年瓶中信・再生驚喜轉盤</title>
+<style>
+  :root {
+    --primary: #164e3f;
+    --secondary: #2a7b64;
+    --accent: #e59a24;
+    --bg: #f2f9f6;
+    --card: #ffffff;
+    --text: #1c332b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: linear-gradient(160deg, #e3f4ed 0%, #f7fbf9 100%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    background: linear-gradient(135deg, #164e3f, #246b58);
+    color: #fff;
+    padding: 14px 16px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+    position: relative;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.18rem;
+    letter-spacing: 0.5px;
+    padding-right: 78px;
+  }
+  header p {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: #cde8de;
+    padding-right: 78px;
+  }
+  .settings-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 20px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .container {
+    width: 100%;
+    max-width: 540px;
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .step-badge {
+    background: #d8efe6;
+    color: #164e3f;
+    font-weight: bold;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 1.12rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 0 14px;
+    color: #134436;
+  }
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  .char-card {
+    background: var(--card);
+    border: 2px solid #cce3d9;
+    border-radius: 16px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    box-shadow: 0 3px 8px rgba(22,78,63,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .char-card:active {
+    transform: scale(0.96);
+    border-color: var(--accent);
+    background: #fffdf7;
+  }
+  .char-avatar {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    margin-bottom: 6px;
+    border-radius: 12px;
+    background: #122620;
+    padding: 4px;
+  }
+  .char-avatar.light-bg {
+    background: #f4faf7;
+  }
+  .char-name {
+    font-weight: bold;
+    font-size: 0.98rem;
+    color: #164e3f;
+  }
+  .char-desc {
+    font-size: 0.76rem;
+    color: #5a756c;
+    margin-top: 2px;
+  }
+  #step2 {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+  .selected-banner {
+    background: #fff;
+    border: 2px solid #e59a24;
+    border-radius: 14px;
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 3px 10px rgba(229,154,36,0.15);
+  }
+  .selected-banner img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 8px;
+    padding: 2px;
+  }
+  .wheel-wrapper {
+    position: relative;
+    width: 315px;
+    height: 315px;
+    margin: 4px 0 18px;
+  }
+  .pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-top: 28px solid #d93829;
+    z-index: 10;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+  }
+  canvas#wheelCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 8px 24px rgba(22,78,63,0.22);
+    border: 6px solid #ffffff;
+  }
+  .spin-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f3a829, #d97e14);
+    border: 4px solid #fff;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 5;
+  }
+  .spin-btn:disabled {
+    background: #9bb0a8;
+    cursor: not-allowed;
+  }
+  .back-link {
+    background: none;
+    border: none;
+    color: #4f6d63;
+    text-decoration: underline;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 38, 31, 0.68);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 22px 20px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    animation: popIn 0.25s ease-out;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-avatar {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    margin: 0 auto 8px;
+    display: block;
+    border-radius: 14px;
+    padding: 4px;
+  }
+  .prize-tag {
+    display: inline-block;
+    background: #fef3dc;
+    color: #b56c07;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+  }
+  .prize-result {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #164e3f;
+    margin: 8px 0;
+    padding: 12px;
+    background: #eef8f4;
+    border-radius: 12px;
+    border: 2px dashed #2a7b64;
+  }
+  .prize-story {
+    font-size: 0.86rem;
+    color: #4a635b;
+    line-height: 1.5;
+    margin: 10px 0 18px;
+  }
+  .primary-btn {
+    background: #164e3f;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+  }
+  textarea {
+    width: 100%;
+    height: 160px;
+    border: 1.5px solid #b8d4c8;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.92rem;
+    font-family: inherit;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 綠川守護龍・再生驚喜轉盤</h1>
+  <p>寫下十年瓶中信 × 召喚守護夥伴領好物</p>
+  <button class="settings-btn" onclick="openSettings()">⚙️ 獎項設定</button>
+</header>
+
+<div class="container">
+  <div id="step1" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+    <div class="step-badge">第 1 步 / 共 2 步</div>
+    <div class="section-title">請點選一位今天想召喚的「綠川守護夥伴」</div>
+    <div class="char-grid" id="charGrid"></div>
+  </div>
+
+  <div id="step2">
+    <div class="step-badge">第 2 步 / 共 2 步</div>
+    <div class="selected-banner" id="selectedBanner"></div>
+    <div class="wheel-wrapper">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="500" height="500"></canvas>
+      <button class="spin-btn" id="spinBtn" onclick="spinWheel()">點我<br>轉動！</button>
+    </div>
+    <button class="back-link" onclick="resetToStep1()">← 重新選擇其他守護夥伴</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resultModal">
+  <div class="modal-box">
+    <img class="modal-avatar" id="modalAvatar" src="" alt="">
+    <div class="prize-tag" id="modalCompanion"></div>
+    <div style="font-size:1rem; font-weight:bold; color:#333;">✨ 恭喜召喚到再生驚喜 ✨</div>
+    <div class="prize-result" id="modalPrize"></div>
+    <div class="prize-story">「這是一份沉睡已久的全新收藏小物，今天在綠川畔醒來，陪你一起開啟下一個十年！」<br>請向服務台工作人員出示畫面領取禮物。</div>
+    <button class="primary-btn" onclick="closeResultAndReset()">完成領獎（換下一位參加者）</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box" style="text-align:left;">
+    <div style="font-weight:bold; font-size:1.1rem; color:#164e3f;">⚙️ 自訂轉盤獎項（每行一格）</div>
+    <p style="font-size:0.82rem; color:#555; margin:6px 0;">可隨時修改你們準備的全新小物編號或驚喜彩蛋，修改後自動儲存在這台手機／平板中：</p>
+    <textarea id="prizeInput"></textarea>
+    <div style="display:flex; gap:8px;">
+      <button class="primary-btn" style="background:#888;" onclick="closeSettings()">取消</button>
+      <button class="primary-btn" onclick="savePrizes()">儲存並套用</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const companions = [
+  { name: "阿綠 (Alu)", img: "1 (1).png", desc: "傾聽水岸心聲・帶來溫柔好運", light: true },
+  { name: "深淨水晶龍", img: "1793616135480.jpg", desc: "守護清澈水質・心想事成" },
+  { name: "晨曦領航龍", img: "1000078573.png", desc: "照亮過去與未來・開啟新希望" },
+  { name: "櫻橋守護龍", img: "1793616151110.jpg", desc: "留住美好記憶・人緣滿滿" },
+  { name: "永續先鋒龍", img: "1000078527.png", desc: "綠色循環力量・生機勃勃" },
+  { name: "陽光探險龍", img: "1000078530.png", desc: "充滿好奇與活力・發現驚喜" },
+  { name: "警示信號龍", img: "1000078533.png", desc: "平安守護・一路順風" },
+  { name: "機器人 AquaBot-W", img: "1000078574.png", desc: "自然與科技的橋樑・智慧好禮" }
+];
+
+const defaultPrizes = [
+  "🎁 驚喜小物 A 區",
+  "💎 守護龍鑰匙圈",
+  "🎁 驚喜小物 B 區",
+  "☀️ 一口太陽餅",
+  "🎁 驚喜小物 C 區",
+  "🌱 種子紙小禮",
+  "🎁 驚喜小物 D 區",
+  "✨ 雙倍幸運彩蛋"
+];
+
+const wheelColors = [
+  "#1e6b56", "#e89f28", "#2d8a70", "#f2b84b",
+  "#185443", "#d9821e", "#389c80", "#e6a73c"
+];
+
+let prizes = JSON.parse(localStorage.getItem("warm_wheel_prizes")) || defaultPrizes;
+let selectedCompanion = null;
+let currentAngle = 0;
+let isSpinning = false;
+
+const charGrid = document.getElementById("charGrid");
+companions.forEach((c, idx) => {
+  const div = document.createElement("div");
+  div.className = "char-card";
+  const bgClass = c.light ? "char-avatar light-bg" : "char-avatar";
+  div.innerHTML = `<img class="${bgClass}" src="${encodeURIComponent(c.img)}" alt="${c.name}"><div class="char-name">${c.name}</div><div class="char-desc">${c.desc}</div>`;
+  div.onclick = () => selectCompanion(idx);
+  charGrid.appendChild(div);
+});
+
+function selectCompanion(idx) {
+  selectedCompanion = companions[idx];
+  document.getElementById("step1").style.display = "none";
+  document.getElementById("step2").style.display = "flex";
+  const bgStyle = selectedCompanion.light ? "background:#f4faf7;" : "background:#122620;";
+  document.getElementById("selectedBanner").innerHTML =
+    `<img src="${encodeURIComponent(selectedCompanion.img)}" style="${bgStyle}" alt=""> <span>已召喚：<strong>${selectedCompanion.name}</strong></span>`;
+  drawWheel();
+}
+
+function resetToStep1() {
+  if (isSpinning) return;
+  document.getElementById("step2").style.display = "none";
+  document.getElementById("step1").style.display = "flex";
+}
+
+const canvas = document.getElementById("wheelCanvas");
+const ctx = canvas.getContext("2d");
+
+function drawWheel() {
+  const num = prizes.length;
+  const arc = (2 * Math.PI) / num;
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const radius = cx - 8;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < num; i++) {
+    const angle = currentAngle + i * arc;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, angle, angle + arc);
+    ctx.closePath();
+    ctx.fillStyle = wheelColors[i % wheelColors.length];
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle + arc / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 22px 'Noto Sans TC', sans-serif";
+    ctx.fillText(prizes[i], radius - 26, 8);
+    ctx.restore();
+  }
+}
+
+function spinWheel() {
+  if (isSpinning) return;
+  isSpinning = true;
+  document.getElementById("spinBtn").disabled = true;
+
+  const extraSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
+  const randomOffset = Math.random() * 2 * Math.PI;
+  const targetAngle = currentAngle + extraSpins + randomOffset;
+  const duration = 3600;
+  const startTime = performance.now();
+  const startAngle = currentAngle;
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    currentAngle = startAngle + (targetAngle - startAngle) * ease;
+    drawWheel();
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      isSpinning = false;
+      document.getElementById("spinBtn").disabled = false;
+      showWinner();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function showWinner() {
+  const num = prizes.length;
+  const arc = (2 * Math.PI) / num;
+  const normalizedAngle = (1.5 * Math.PI - (currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const winningIndex = Math.floor(normalizedAngle / arc) % num;
+  const wonPrize = prizes[winningIndex];
+
+  const modalImg = document.getElementById("modalAvatar");
+  modalImg.src = encodeURIComponent(selectedCompanion.img);
+  modalImg.style.background = selectedCompanion.light ? "#f4faf7" : "#122620";
+  document.getElementById("modalCompanion").textContent = `${selectedCompanion.name} 為你帶來：`;
+  document.getElementById("modalPrize").textContent = wonPrize;
+  document.getElementById("resultModal").style.display = "flex";
+}
+
+function closeResultAndReset() {
+  document.getElementById("resultModal").style.display = "none";
+  resetToStep1();
+}
+
+function openSettings() {
+  if (isSpinning) return;
+  document.getElementById("prizeInput").value = prizes.join("\n");
+  document.getElementById("settingsModal").style.display = "flex";
+}
+function closeSettings() {
+  document.getElementById("settingsModal").style.display = "none";
+}
+function savePrizes() {
+  const lines = document.getElementById("prizeInput").value
+    .split("\n")
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  if (lines.length >= 2) {
+    prizes = lines;
+    localStorage.setItem("warm_wheel_prizes", JSON.stringify(prizes));
+    drawWheel();
+  }
+  closeSettings();
+}
+</script>
+</body>
+</html>
