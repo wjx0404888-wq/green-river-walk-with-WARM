@@ -141,7 +141,7 @@
     border: 2px solid #e59a24;
     border-radius: 14px;
     padding: 8px 16px;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
     font-size: 0.98rem;
     display: flex;
     align-items: center;
@@ -154,6 +154,15 @@
     object-fit: contain;
     border-radius: 8px;
     padding: 2px;
+  }
+  .stock-pill {
+    font-size: 0.82rem;
+    color: #164e3f;
+    background: #e1f3ec;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-weight: bold;
   }
   .wheel-wrapper {
     position: relative;
@@ -264,11 +273,17 @@
     border-radius: 12px;
     border: 2px dashed #2a7b64;
   }
+  .remain-note {
+    font-size: 0.85rem;
+    color: #d97e14;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
   .prize-story {
     font-size: 0.86rem;
     color: #4a635b;
     line-height: 1.5;
-    margin: 10px 0 18px;
+    margin: 8px 0 18px;
   }
   .primary-btn {
     background: #164e3f;
@@ -283,13 +298,14 @@
   }
   textarea {
     width: 100%;
-    height: 160px;
+    height: 185px;
     border: 1.5px solid #b8d4c8;
     border-radius: 10px;
     padding: 10px;
     font-size: 0.92rem;
     font-family: inherit;
-    margin: 10px 0;
+    margin: 8px 0;
+    line-height: 1.5;
   }
 </style>
 </head>
@@ -298,7 +314,7 @@
 <header>
   <h1>🌿 綠川守護龍・再生驚喜轉盤</h1>
   <p>寫下十年瓶中信 × 召喚守護夥伴領好物</p>
-  <button class="settings-btn" onclick="openSettings()">⚙️ 獎項設定</button>
+  <button class="settings-btn" onclick="openSettings()">⚙️ 獎項與數量</button>
 </header>
 
 <div class="container">
@@ -311,6 +327,7 @@
   <div id="step2">
     <div class="step-badge">第 2 步 / 共 2 步</div>
     <div class="selected-banner" id="selectedBanner"></div>
+    <div class="stock-pill" id="stockPill">目前現場總禮物剩餘：計算中...</div>
     <div class="wheel-wrapper">
       <div class="pointer"></div>
       <canvas id="wheelCanvas" width="500" height="500"></canvas>
@@ -326,19 +343,20 @@
     <div class="prize-tag" id="modalCompanion"></div>
     <div style="font-size:1rem; font-weight:bold; color:#333;">✨ 恭喜召喚到再生驚喜 ✨</div>
     <div class="prize-result" id="modalPrize"></div>
+    <div class="remain-note" id="modalRemain"></div>
     <div class="prize-story">「這是一份沉睡已久的全新收藏小物，今天在綠川畔醒來，陪你一起開啟下一個十年！」<br>請向服務台工作人員出示畫面領取禮物。</div>
-    <button class="primary-btn" onclick="closeResultAndReset()">完成領獎（換下一位參加者）</button>
+    <button class="primary-btn" onclick="closeResultAndReset()">完成領獎（已扣減 1 份，換下一位）</button>
   </div>
 </div>
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-box" style="text-align:left;">
-    <div style="font-weight:bold; font-size:1.1rem; color:#164e3f;">⚙️ 自訂轉盤獎項（每行一格）</div>
-    <p style="font-size:0.82rem; color:#555; margin:6px 0;">可隨時修改你們準備的全新小物編號或驚喜彩蛋，修改後自動儲存在這台手機／平板中：</p>
+    <div style="font-weight:bold; font-size:1.1rem; color:#164e3f;">⚙️ 獎項與份數設定（即時庫存）</div>
+    <p style="font-size:0.82rem; color:#555; margin:6px 0;">格式為「<strong>獎品名稱, 份數</strong>」（每行一格）。抽中會自動減 1，數量歸 0 時轉盤不會再抽中該格：</p>
     <textarea id="prizeInput"></textarea>
     <div style="display:flex; gap:8px;">
       <button class="primary-btn" style="background:#888;" onclick="closeSettings()">取消</button>
-      <button class="primary-btn" onclick="savePrizes()">儲存並套用</button>
+      <button class="primary-btn" onclick="savePrizes()">儲存並更新庫存</button>
     </div>
   </div>
 </div>
@@ -356,14 +374,14 @@ const companions = [
 ];
 
 const defaultPrizes = [
-  "🎁 驚喜小物 A 區",
-  "💎 守護龍鑰匙圈",
-  "🎁 驚喜小物 B 區",
-  "☀️ 一口太陽餅",
-  "🎁 驚喜小物 C 區",
-  "🌱 種子紙小禮",
-  "🎁 驚喜小物 D 區",
-  "✨ 雙倍幸運彩蛋"
+  { name: "🎁 驚喜小物 A 區", count: 10 },
+  { name: "💎 守護龍鑰匙圈", count: 10 },
+  { name: "🎁 驚喜小物 B 區", count: 10 },
+  { name: "☀️ 一口太陽餅", count: 10 },
+  { name: "🎁 驚喜小物 C 區", count: 10 },
+  { name: "🌱 種子紙小禮", count: 10 },
+  { name: "🎁 驚喜小物 D 區", count: 10 },
+  { name: "✨ 雙倍幸運彩蛋", count: 5 }
 ];
 
 const wheelColors = [
@@ -371,7 +389,7 @@ const wheelColors = [
   "#185443", "#d9821e", "#389c80", "#e6a73c"
 ];
 
-let prizes = JSON.parse(localStorage.getItem("warm_wheel_prizes")) || defaultPrizes;
+let prizes = JSON.parse(localStorage.getItem("warm_wheel_prizes_v2")) || defaultPrizes;
 let selectedCompanion = null;
 let currentAngle = 0;
 let isSpinning = false;
@@ -386,6 +404,27 @@ companions.forEach((c, idx) => {
   charGrid.appendChild(div);
 });
 
+function updateStockDisplay() {
+  const total = prizes.reduce((sum, p) => sum + Math.max(0, p.count), 0);
+  const pill = document.getElementById("stockPill");
+  const btn = document.getElementById("spinBtn");
+  if (total > 0) {
+    pill.textContent = `🎁 目前現場禮物總剩餘：${total} 份`;
+    pill.style.background = "#e1f3ec";
+    pill.style.color = "#164e3f";
+    if (!isSpinning) {
+      btn.disabled = false;
+      btn.innerHTML = "點我<br>轉動！";
+    }
+  } else {
+    pill.textContent = "🎉 本場次所有禮物皆已抽完！";
+    pill.style.background = "#fde8e8";
+    pill.style.color = "#b82525";
+    btn.disabled = true;
+    btn.innerHTML = "已抽完";
+  }
+}
+
 function selectCompanion(idx) {
   selectedCompanion = companions[idx];
   document.getElementById("step1").style.display = "none";
@@ -393,6 +432,7 @@ function selectCompanion(idx) {
   const bgStyle = selectedCompanion.light ? "background:#f4faf7;" : "background:#122620;";
   document.getElementById("selectedBanner").innerHTML =
     `<img src="${encodeURIComponent(selectedCompanion.img)}" style="${bgStyle}" alt=""> <span>已召喚：<strong>${selectedCompanion.name}</strong></span>`;
+  updateStockDisplay();
   drawWheel();
 }
 
@@ -415,12 +455,15 @@ function drawWheel() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   for (let i = 0; i < num; i++) {
+    const item = prizes[i];
+    const isSoldOut = item.count <= 0;
     const angle = currentAngle + i * arc;
+
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.arc(cx, cy, radius, angle, angle + arc);
     ctx.closePath();
-    ctx.fillStyle = wheelColors[i % wheelColors.length];
+    ctx.fillStyle = isSoldOut ? "#9aa8a3" : wheelColors[i % wheelColors.length];
     ctx.fill();
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#ffffff";
@@ -430,21 +473,46 @@ function drawWheel() {
     ctx.translate(cx, cy);
     ctx.rotate(angle + arc / 2);
     ctx.textAlign = "right";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 22px 'Noto Sans TC', sans-serif";
-    ctx.fillText(prizes[i], radius - 26, 8);
+    ctx.fillStyle = isSoldOut ? "#e0e6e4" : "#ffffff";
+    ctx.font = "bold 20px 'Noto Sans TC', sans-serif";
+    const label = isSoldOut ? `${item.name}(畢)` : `${item.name}(${item.count})`;
+    ctx.fillText(label, radius - 22, 7);
     ctx.restore();
   }
 }
 
 function spinWheel() {
   if (isSpinning) return;
+
+  // 依據剩餘份數進行加權隨機抽選，保證 100% 不會抽中 0 份的項目
+  const availableIndices = [];
+  prizes.forEach((p, idx) => {
+    for (let k = 0; k < p.count; k++) {
+      availableIndices.push(idx);
+    }
+  });
+
+  if (availableIndices.length === 0) {
+    alert("所有禮物都已經被幸運兒抽完囉！如需補充請點右上角「獎項與數量」。");
+    return;
+  }
+
+  const winningIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+
   isSpinning = true;
   document.getElementById("spinBtn").disabled = true;
 
-  const extraSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
-  const randomOffset = Math.random() * 2 * Math.PI;
-  const targetAngle = currentAngle + extraSpins + randomOffset;
+  // 精準計算讓指針 (1.5 * PI) 停在 winningIndex 扇形中間的安全範圍內
+  const num = prizes.length;
+  const arc = (2 * Math.PI) / num;
+  const randomInsideSlice = (0.2 + Math.random() * 0.6) * arc;
+  const targetNormalized = (1.5 * Math.PI - (winningIndex * arc + randomInsideSlice) + 4 * Math.PI) % (2 * Math.PI);
+  const currentNormalized = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const deltaAngle = (targetNormalized - currentNormalized + 2 * Math.PI) % (2 * Math.PI);
+
+  const extraSpins = (5 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+  const targetAngle = currentAngle + extraSpins + deltaAngle;
+
   const duration = 3600;
   const startTime = performance.now();
   const startAngle = currentAngle;
@@ -460,25 +528,25 @@ function spinWheel() {
       requestAnimationFrame(animate);
     } else {
       isSpinning = false;
-      document.getElementById("spinBtn").disabled = false;
-      showWinner();
+      // 扣減 1 份庫存並儲存
+      prizes[winningIndex].count = Math.max(0, prizes[winningIndex].count - 1);
+      localStorage.setItem("warm_wheel_prizes_v2", JSON.stringify(prizes));
+      drawWheel();
+      updateStockDisplay();
+      showWinner(winningIndex);
     }
   }
   requestAnimationFrame(animate);
 }
 
-function showWinner() {
-  const num = prizes.length;
-  const arc = (2 * Math.PI) / num;
-  const normalizedAngle = (1.5 * Math.PI - (currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-  const winningIndex = Math.floor(normalizedAngle / arc) % num;
-  const wonPrize = prizes[winningIndex];
-
+function showWinner(winningIndex) {
+  const wonItem = prizes[winningIndex];
   const modalImg = document.getElementById("modalAvatar");
   modalImg.src = encodeURIComponent(selectedCompanion.img);
   modalImg.style.background = selectedCompanion.light ? "#f4faf7" : "#122620";
   document.getElementById("modalCompanion").textContent = `${selectedCompanion.name} 為你帶來：`;
-  document.getElementById("modalPrize").textContent = wonPrize;
+  document.getElementById("modalPrize").textContent = wonItem.name;
+  document.getElementById("modalRemain").textContent = `（工作人員核對：此獎項目前還剩 ${wonItem.count} 份）`;
   document.getElementById("resultModal").style.display = "flex";
 }
 
@@ -489,7 +557,7 @@ function closeResultAndReset() {
 
 function openSettings() {
   if (isSpinning) return;
-  document.getElementById("prizeInput").value = prizes.join("\n");
+  document.getElementById("prizeInput").value = prizes.map(p => `${p.name}, ${p.count}`).join("\n");
   document.getElementById("settingsModal").style.display = "flex";
 }
 function closeSettings() {
@@ -500,9 +568,17 @@ function savePrizes() {
     .split("\n")
     .map(s => s.trim())
     .filter(s => s.length > 0);
-  if (lines.length >= 2) {
-    prizes = lines;
-    localStorage.setItem("warm_wheel_prizes", JSON.stringify(prizes));
+  const parsed = [];
+  lines.forEach(line => {
+    const parts = line.split(/[,，]/);
+    const name = parts[0].trim();
+    const count = parts.length > 1 && !isNaN(parseInt(parts[1])) ? Math.max(0, parseInt(parts[1])) : 5;
+    if (name) parsed.push({ name, count });
+  });
+  if (parsed.length >= 2) {
+    prizes = parsed;
+    localStorage.setItem("warm_wheel_prizes_v2", JSON.stringify(prizes));
+    updateStockDisplay();
     drawWheel();
   }
   closeSettings();
